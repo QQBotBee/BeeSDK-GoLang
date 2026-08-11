@@ -16,18 +16,6 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// IPCMessage 定义 Go 工作进程与 Bee C 壳之间传输的 IPC 消息格式。
-type IPCMessage struct {
-	Type       string   `json:"type"`
-	ID         string   `json:"id,omitempty"`
-	Event      string   `json:"event,omitempty"`
-	ArgsB64    []string `json:"args_b64,omitempty"`
-	CommandB64 string   `json:"command_b64,omitempty"`
-	ValueB64   string   `json:"value_b64,omitempty"`
-	Result     int      `json:"result,omitempty"`
-	Error      string   `json:"error,omitempty"`
-}
-
 // decodeArgBytes 将 C 壳通过 IPC 传来的 Base64 参数还原为原始字节。
 func decodeArgBytes(value string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(value)

@@ -318,7 +318,7 @@ func settingsWindowProc(hwnd uintptr, message uint32, wparam, lparam uintptr) ui
 	case wmEraseBkgnd:
 		return 1
 	case wmGetMinMaxInfo:
-		info := (*minMaxInfo)(unsafe.Pointer(lparam))
+		info := *(**minMaxInfo)(unsafe.Pointer(&lparam))
 		var placement windowPlacement
 		placement.Length = uint32(unsafe.Sizeof(placement))
 		procGetWindowPlacement.Call(hwnd, uintptr(unsafe.Pointer(&placement)))

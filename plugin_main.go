@@ -342,6 +342,9 @@ func onCommonEvent(
 	case EventGroupMemberRemove:
 		// 群聊成员被踢出或移除
 
+	case EventGroupJoinRequest:
+		// 有人申请加入群聊
+
 	default:
 		// 其他或后续新增的通常事件，可在这里统一处理。
 	}

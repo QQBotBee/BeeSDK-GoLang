@@ -94,6 +94,16 @@ const (
 	OpSendFriendFile             = 70
 	OpSendGroupReply             = 71
 	OpSendFriendReply            = 72
+	OpGetRobotShareLink          = 73
+	OpGetGroupBasicInfo          = 74
+	OpGetRobotGroupStatus        = 75
+	OpListGroupJoinRequests      = 76
+	OpHandleGroupJoinRequest     = 77
+	OpGetGroupMuteInfo           = 78
+	OpIsGroupMemberMuted         = 79
+	OpIsGroupMuted               = 80
+	OpMuteGroupMembers           = 81
+	OpIsGroupManagement          = 82
 )
 
 // ==================== types.go ====================
@@ -164,6 +174,8 @@ const (
 	EventGroupMemberAdd EventType = "GROUP_MEMBER_ADD"
 	// EventGroupMemberRemove 表示某人被踢出或移除群聊。
 	EventGroupMemberRemove EventType = "GROUP_MEMBER_REMOVE"
+	// EventGroupJoinRequest 表示有人申请加入群聊。
+	EventGroupJoinRequest EventType = "GROUP_JOIN_REQUEST"
 
 	// EventInteractionCreate 表示有人触发按钮回调，频道、群聊和私聊场景共用此事件值。
 	EventInteractionCreate EventType = "INTERACTION_CREATE"
@@ -237,6 +249,45 @@ type RobotInfo struct {
 	ID        string `json:"id"`
 	Name      string `json:"username"`
 	AvatarURL string `json:"avatar"`
+}
+
+// GroupBasicInfo 表示群聊基本信息。
+type GroupBasicInfo struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"desc"`
+	Type        string `json:"type"`
+	Tags        string `json:"tag"`
+	MemberCount int    `json:"num"`
+}
+
+// RobotGroupStatus 表示机器人在指定群内的状态。
+type RobotGroupStatus struct {
+	RobotID     string `json:"id"`
+	JoinedAt    string `json:"date"`
+	ReceivePush bool   `json:"send"`
+	MessageType int    `json:"type"`
+	Power       int    `json:"power"`
+}
+
+// GroupJoinRequest 表示一条入群申请。
+type GroupJoinRequest struct {
+	RequestID string `json:"joinId"`
+	RiskTips  string `json:"tips"`
+	OpenID    string `json:"openId"`
+	UserID    string `json:"userId"`
+	UserNick  string `json:"userNick"`
+	Date      string `json:"date"`
+	Type      int    `json:"type"`
+	InvitedBy string `json:"invitedBy"`
+	IsBot     bool   `json:"bot"`
+	Content   string `json:"content"`
+}
+
+// GroupMuteInfo 表示群禁言状态。
+type GroupMuteInfo struct {
+	AllMuted     bool   `json:"all"`
+	MutedMembers string `json:"list"`
 }
 
 // MarkdownParam 表示 Markdown 模板的一组键和值。
@@ -495,6 +546,58 @@ func (ctx *RobotContext) GetRobotToken() (string, error) { return ctx.Call(OpGet
 
 // GetRobotSecret 封装对应的 Bee 框架 API；参数和返回值与方法签名一致。
 func (ctx *RobotContext) GetRobotSecret() (string, error) { return ctx.Call(OpGetRobotSecret) }
+
+// GetRobotShareLink 返回机器人分享链接，用于邀请用户添加机器人为好友。
+func (ctx *RobotContext) GetRobotShareLink() (string, error) {
+	return ctx.Call(OpGetRobotShareLink)
+}
+
+// GetGroupBasicInfo 返回群聊基本信息。
+func (ctx *RobotContext) GetGroupBasicInfo(groupID string) (GroupBasicInfo, error) {
+	return decodeCall[GroupBasicInfo](ctx, OpGetGroupBasicInfo, groupID)
+}
+
+// GetRobotGroupStatus 返回机器人在指定群内的状态。
+func (ctx *RobotContext) GetRobotGroupStatus(groupID string) (RobotGroupStatus, error) {
+	return decodeCall[RobotGroupStatus](ctx, OpGetRobotGroupStatus, groupID)
+}
+
+// ListGroupJoinRequests 返回指定群的入群申请列表；需管理员身份调用。
+func (ctx *RobotContext) ListGroupJoinRequests(groupID string) ([]GroupJoinRequest, error) {
+	return decodeCall[[]GroupJoinRequest](ctx, OpListGroupJoinRequests, groupID)
+}
+
+// HandleGroupJoinRequest 处理入群请求；action 为 0 表示同意，1 表示拒绝。
+func (ctx *RobotContext) HandleGroupJoinRequest(groupID, userID, requestID string, action int, rejectReason string, blockUser bool) error {
+	_, err := ctx.Call(OpHandleGroupJoinRequest, groupID, userID, requestID, intText(action), rejectReason, boolText(blockUser))
+	return err
+}
+
+// GetGroupMuteInfo 返回指定群的禁言状态；需管理员身份调用。
+func (ctx *RobotContext) GetGroupMuteInfo(groupID string) (GroupMuteInfo, error) {
+	return decodeCall[GroupMuteInfo](ctx, OpGetGroupMuteInfo, groupID)
+}
+
+// IsGroupMemberMuted 查询指定群成员是否被禁言；需管理员身份调用。
+func (ctx *RobotContext) IsGroupMemberMuted(groupID, userID string) (bool, error) {
+	return ctx.CallBool(OpIsGroupMemberMuted, groupID, userID)
+}
+
+// IsGroupMuted 查询指定群是否开启全员禁言；需管理员身份调用。
+func (ctx *RobotContext) IsGroupMuted(groupID string) (bool, error) {
+	return ctx.CallBool(OpIsGroupMuted, groupID)
+}
+
+// MuteGroupMembers 设置群成员禁言秒数，传 0 表示解除禁言；userIDs 支持用换行分隔多个用户。
+func (ctx *RobotContext) MuteGroupMembers(groupID, userIDs string, seconds int) error {
+	_, err := ctx.Call(OpMuteGroupMembers, groupID, userIDs, intText(seconds))
+	return err
+}
+
+// IsGroupManagement 查询机器人是否为指定群的管理员或群主。
+func (ctx *RobotContext) IsGroupManagement(groupID string) (bool, error) {
+	return ctx.CallBool(OpIsGroupManagement, groupID)
+}
 
 // ==================== messages.go ====================
 func sendMessage(ctx *RobotContext, op int, target, content, media string, deleteMedia, active bool, recallInteraction *bool) (string, error) {
@@ -992,6 +1095,56 @@ func (api *BeeAPI) MuteAll(guildID string, seconds int) error {
 	return api.ctx.MuteGuild(guildID, seconds)
 }
 
+// GetRobotShareLink 返回机器人分享链接，用于邀请用户添加机器人为好友。
+func (api *BeeAPI) GetRobotShareLink() (string, error) {
+	return api.ctx.GetRobotShareLink()
+}
+
+// GetGroupBasicInfo 返回群聊基本信息。
+func (api *BeeAPI) GetGroupBasicInfo(groupID string) (GroupBasicInfo, error) {
+	return api.ctx.GetGroupBasicInfo(groupID)
+}
+
+// GetRobotGroupStatus 返回机器人在指定群内的状态。
+func (api *BeeAPI) GetRobotGroupStatus(groupID string) (RobotGroupStatus, error) {
+	return api.ctx.GetRobotGroupStatus(groupID)
+}
+
+// ListGroupJoinRequests 返回指定群的入群申请列表；需管理员身份调用。
+func (api *BeeAPI) ListGroupJoinRequests(groupID string) ([]GroupJoinRequest, error) {
+	return api.ctx.ListGroupJoinRequests(groupID)
+}
+
+// HandleGroupJoinRequest 处理入群请求；action 为 0 表示同意，1 表示拒绝。
+func (api *BeeAPI) HandleGroupJoinRequest(groupID, userID, requestID string, action int, rejectReason string, blockUser bool) error {
+	return api.ctx.HandleGroupJoinRequest(groupID, userID, requestID, action, rejectReason, blockUser)
+}
+
+// GetGroupMuteInfo 返回指定群的禁言状态；需管理员身份调用。
+func (api *BeeAPI) GetGroupMuteInfo(groupID string) (GroupMuteInfo, error) {
+	return api.ctx.GetGroupMuteInfo(groupID)
+}
+
+// IsGroupMemberMuted 查询指定群成员是否被禁言；需管理员身份调用。
+func (api *BeeAPI) IsGroupMemberMuted(groupID, userID string) (bool, error) {
+	return api.ctx.IsGroupMemberMuted(groupID, userID)
+}
+
+// IsGroupMuted 查询指定群是否开启全员禁言；需管理员身份调用。
+func (api *BeeAPI) IsGroupMuted(groupID string) (bool, error) {
+	return api.ctx.IsGroupMuted(groupID)
+}
+
+// MuteGroupMembers 设置群成员禁言秒数，传 0 表示解除禁言；userIDs 支持用换行分隔多个用户。
+func (api *BeeAPI) MuteGroupMembers(groupID, userIDs string, seconds int) error {
+	return api.ctx.MuteGroupMembers(groupID, userIDs, seconds)
+}
+
+// IsGroupManagement 查询机器人是否为指定群的管理员或群主。
+func (api *BeeAPI) IsGroupManagement(groupID string) (bool, error) {
+	return api.ctx.IsGroupManagement(groupID)
+}
+
 // ParseMention 判断消息是否艾特当前机器人，并返回移除艾特代码后的消息内容。
 func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
 	robotID, err := api.ctx.GetRobotID()
@@ -1143,10 +1296,10 @@ func (ctx *RobotContext) Call(op int, args ...string) (string, error) {
 	return string(result), err
 }
 
-// CallBool 调用框架 API，并将返回值“1”转换为 true。
+// CallBool 调用框架 API，并将返回值“1”或“真”转换为 true。
 func (ctx *RobotContext) CallBool(op int, args ...string) (bool, error) {
 	out, err := ctx.Call(op, args...)
-	return out == "1", err
+	return out == "1" || out == "真", err
 }
 
 func boolText(v bool) string {
@@ -1182,9 +1335,24 @@ var OpcodeNames = map[int]string{
 	61: "发表频道表情表态", 62: "删除频道表情表态", 63: "取频道表情表态用户列表", 64: "取机器人统计信息",
 	65: "发送群按钮消息", 66: "发送好友按钮消息", 67: "取机器人Token", 68: "取机器人密钥",
 	69: "发送群文件", 70: "发送好友文件", 71: "发送群引用消息", 72: "发送好友引用消息",
+	73: "取机器人分享链接", 74: "取群基本信息", 75: "取机器人群内状态", 76: "取入群申请列表",
+	77: "处理入群请求", 78: "取群内禁言信息", 79: "取群内某人是否被禁言", 80: "取群内是否全员禁言中",
+	81: "设置群成员禁言", 82: "取是否为群管理高层",
 }
 
 // ==================== IPC transport ====================
+// IPCMessage 定义 Go 工作进程与 Bee C 壳之间传输的 IPC 消息格式。
+type IPCMessage struct {
+	Type       string   `json:"type"`
+	ID         string   `json:"id,omitempty"`
+	Event      string   `json:"event,omitempty"`
+	ArgsB64    []string `json:"args_b64,omitempty"`
+	CommandB64 string   `json:"command_b64,omitempty"`
+	ValueB64   string   `json:"value_b64,omitempty"`
+	Result     int      `json:"result,omitempty"`
+	Error      string   `json:"error,omitempty"`
+}
+
 type APITransport interface {
 	Call(command []byte) ([]byte, error)
 }

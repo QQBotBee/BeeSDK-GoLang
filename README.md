@@ -49,8 +49,8 @@ Bee Go Plugin SDK 是一套面向 **Bee 机器人框架**的 Go 插件开发模�
 - **完整生命周期**：支持初始化、启用、禁用、卸载和设置入口。
 - **完整消息回调**：支持频道私信、频道消息、频道事件、好友私聊、群聊消息和通常事件。
 - **具名业务参数**：直接使用 `groupID`、`friendID`、`messageID` 等变量，无需操作 IPC 数组下标。
-- **完整 Bee API**：包含 1～72 操作码、常用链式接口及按钮响应快捷方法。
-- **完整事件常量**：提供 32 个事件常量及中文说明。
+- **完整 Bee API**：包含 1～82 操作码、常用链式接口及按钮响应快捷方法。
+- **完整事件常量**：提供 33 个事件常量及中文说明。
 - **编码自动转换**：自动处理 Bee 的 GBK/CP936 与 Go UTF-8 编码边界。
 - **专属数据目录**：通过 `GetAppDataDir()` 获取当前插件的数据目录。
 - **原生设置窗口**：支持单实例、固定尺寸、居中显示和始终置顶。
@@ -235,6 +235,19 @@ _, _ = bee.Friend(friendID).SendText("你好")
 _, _ = bee.Group(groupID).SendText("大家好")
 ```
 
+### 查询群管理状态
+
+```go
+ok, err := bee.IsGroupManagement(groupID)
+if err != nil {
+    return
+}
+if ok {
+    info, _ := bee.GetGroupBasicInfo(groupID)
+    _ = bee.Log("当前群：" + info.Name)
+}
+```
+
 ### 发送频道消息
 
 ```go
@@ -295,7 +308,7 @@ Bee框架根目录\plugin_data\插件名称
 ├── go.mod
 ├── go.sum
 ├── docs/
-│   ├── API参考.md              # 1～72 API 与数据目录说明
+│   ├── API参考.md              # 1～82 API 与数据目录说明
 │   ├── AI开发指南.md           # 架构边界与开发规则
 │   └── 设置窗口开发规范.md     # 设置窗口开发约束
 └── other/

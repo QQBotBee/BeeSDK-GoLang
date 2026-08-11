@@ -49,7 +49,7 @@ Bee框架根目录\plugin_data\插件名称
 - Bee 入站 GBK 参数由 C 壳 Base64 封装，worker 解码为 UTF-8。
 - Go 出站 UTF-8 命令由 C 壳转换为 GBK；GBK 不可表示字符由 SDK编码为 UTF-16 `\uXXXX`。
 
-## 1～72 操作码
+## 1～82 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -125,5 +125,39 @@ Bee框架根目录\plugin_data\插件名称
 | 70 | `OpSendFriendFile` | 发送好友文件 |
 | 71 | `OpSendGroupReply` | 发送群引用消息 |
 | 72 | `OpSendFriendReply` | 发送好友引用消息 |
+| 73 | `OpGetRobotShareLink` | 取机器人分享链接 |
+| 74 | `OpGetGroupBasicInfo` | 取群基本信息 |
+| 75 | `OpGetRobotGroupStatus` | 取机器人群内状态 |
+| 76 | `OpListGroupJoinRequests` | 取入群申请列表 |
+| 77 | `OpHandleGroupJoinRequest` | 处理入群请求 |
+| 78 | `OpGetGroupMuteInfo` | 取群内禁言信息 |
+| 79 | `OpIsGroupMemberMuted` | 取群内某人是否被禁言 |
+| 80 | `OpIsGroupMuted` | 取群内是否全员禁言中 |
+| 81 | `OpMuteGroupMembers` | 设置群成员禁言 |
+| 82 | `OpIsGroupManagement` | 取是否为群管理高层 |
+
+## 新增群管理 API
+
+`BeeAPI` 和 `RobotContext` 均提供以下方法：
+
+| 方法 | 返回 | 说明 |
+|---|---|---|
+| `GetRobotShareLink()` | `string` | 返回机器人分享链接，用于邀请用户添加机器人为好友 |
+| `GetGroupBasicInfo(groupID string)` | `GroupBasicInfo` | 返回群 ID、名称、简介、分类、标签和成员数 |
+| `GetRobotGroupStatus(groupID string)` | `RobotGroupStatus` | 返回机器人在群内的身份、入群时间和消息接收状态 |
+| `ListGroupJoinRequests(groupID string)` | `[]GroupJoinRequest` | 返回入群申请列表，需管理员身份调用 |
+| `HandleGroupJoinRequest(groupID, userID, requestID string, action int, rejectReason string, blockUser bool)` | `error` | 处理入群请求，`action` 为 0 同意、1 拒绝 |
+| `GetGroupMuteInfo(groupID string)` | `GroupMuteInfo` | 返回全员禁言状态和被禁言成员列表，需管理员身份调用 |
+| `IsGroupMemberMuted(groupID, userID string)` | `bool` | 查询某人是否被禁言，需管理员身份调用 |
+| `IsGroupMuted(groupID string)` | `bool` | 查询全员禁言是否开启，需管理员身份调用 |
+| `MuteGroupMembers(groupID, userIDs string, seconds int)` | `error` | 设置成员禁言，`seconds` 为 0 表示解除禁言；多个用户 ID 用换行分隔 |
+| `IsGroupManagement(groupID string)` | `bool` | 查询机器人是否为管理员或群主 |
+
+相关结构体：
+
+- `GroupBasicInfo`
+- `RobotGroupStatus`
+- `GroupJoinRequest`
+- `GroupMuteInfo`
 
 各方法完整参数签名和类型定义直接查看根目录 `bee_sdk.go`。该文件是 SDK 的单一实现源，不拆分为大量小文件。
