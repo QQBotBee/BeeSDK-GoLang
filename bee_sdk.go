@@ -22,88 +22,102 @@ import (
 
 // ==================== opcodes.go ====================
 const (
-	OpLog                        = 1
-	OpSendChannelMessage         = 2
-	OpSendChannelDM              = 3
-	OpListGuilds                 = 4
-	OpGetGuild                   = 5
-	OpListChannels               = 6
-	OpGetChannel                 = 7
-	OpCreateChannel              = 8
-	OpGetChannelOnlineCount      = 9
-	OpGetGuildMember             = 10
-	OpUpdateChannel              = 11
-	OpDeleteChannel              = 12
-	OpDeleteGuildMember          = 13
-	OpListGuildRoles             = 14
-	OpCreateGuildRole            = 15
-	OpUpdateGuildRole            = 16
-	OpIsGuildOwner               = 17
-	OpIsGuildAdmin               = 18
-	OpIsChannelAdmin             = 19
-	OpHasGuildRole               = 20
-	OpDeleteGuildRole            = 21
-	OpAddGuildMemberRole         = 22
-	OpRemoveGuildMemberRole      = 23
-	OpRecallChannelMessage       = 24
-	OpSendChannelReply           = 25
-	OpSendChannelTextCard        = 26
-	OpSendChannelCustom          = 27
-	OpSendChannelLargeCard       = 28
-	OpMuteGuildMember            = 29
-	OpMuteGuild                  = 30
-	OpGetRobotID                 = 31
-	OpGetRobotInfo               = 32
-	OpSendAdaptiveMessage        = 33
-	OpSendGroupMessage           = 34
-	OpSendGroupVideo             = 35
-	OpSendGroupAudio             = 36
-	OpGetFrameworkInfo           = 37
-	OpSendGroupMarkdown          = 38
-	OpSendGroupTextCard          = 39
-	OpGetQQNickname              = 40
-	OpSendGroupLargeCard         = 41
-	OpSendAdaptiveLargeCard      = 42
-	OpSendGroupThumbnailCard     = 43
-	OpSendChannelThumbnailCard   = 44
-	OpUploadImage                = 45
-	OpRespondButton              = 46
-	OpSendChannelMarkdown        = 47
-	OpGetRobotAppID              = 48
-	OpGetAvatar                  = 49
-	OpGetQQAvatar                = 50
-	OpRecallGroupMessage         = 51
-	OpSendFriendMessage          = 52
-	OpSendFriendVideo            = 53
-	OpSendFriendAudio            = 54
-	OpSendFriendMarkdown         = 55
-	OpSendFriendTextCard         = 56
-	OpSendFriendLargeCard        = 57
-	OpSendFriendThumbnailCard    = 58
-	OpRecallFriendMessage        = 59
-	OpSendAdaptivePrivateMessage = 60
-	OpAddChannelReaction         = 61
-	OpDeleteChannelReaction      = 62
-	OpListChannelReactionUsers   = 63
-	OpGetRobotStats              = 64
-	OpSendGroupButton            = 65
-	OpSendFriendButton           = 66
-	OpGetRobotToken              = 67
-	OpGetRobotSecret             = 68
-	OpSendGroupFile              = 69
-	OpSendFriendFile             = 70
-	OpSendGroupReply             = 71
-	OpSendFriendReply            = 72
-	OpGetRobotShareLink          = 73
-	OpGetGroupBasicInfo          = 74
-	OpGetRobotGroupStatus        = 75
-	OpListGroupJoinRequests      = 76
-	OpHandleGroupJoinRequest     = 77
-	OpGetGroupMuteInfo           = 78
-	OpIsGroupMemberMuted         = 79
-	OpIsGroupMuted               = 80
-	OpMuteGroupMembers           = 81
-	OpIsGroupManagement          = 82
+	OpLog                                    = 1
+	OpSendChannelMessage                     = 2
+	OpSendChannelDM                          = 3
+	OpListGuilds                             = 4
+	OpGetGuild                               = 5
+	OpListChannels                           = 6
+	OpGetChannel                             = 7
+	OpCreateChannel                          = 8
+	OpGetChannelOnlineCount                  = 9
+	OpGetGuildMember                         = 10
+	OpUpdateChannel                          = 11
+	OpDeleteChannel                          = 12
+	OpDeleteGuildMember                      = 13
+	OpListGuildRoles                         = 14
+	OpCreateGuildRole                        = 15
+	OpUpdateGuildRole                        = 16
+	OpIsGuildOwner                           = 17
+	OpIsGuildAdmin                           = 18
+	OpIsChannelAdmin                         = 19
+	OpHasGuildRole                           = 20
+	OpDeleteGuildRole                        = 21
+	OpAddGuildMemberRole                     = 22
+	OpRemoveGuildMemberRole                  = 23
+	OpRecallChannelMessage                   = 24
+	OpSendChannelReply                       = 25
+	OpSendChannelTextCard                    = 26
+	OpSendChannelCustom                      = 27
+	OpSendChannelLargeCard                   = 28
+	OpMuteGuildMember                        = 29
+	OpMuteGuild                              = 30
+	OpGetRobotID                             = 31
+	OpGetRobotInfo                           = 32
+	OpSendAdaptiveMessage                    = 33
+	OpSendGroupMessage                       = 34
+	OpSendGroupVideo                         = 35
+	OpSendGroupAudio                         = 36
+	OpGetFrameworkInfo                       = 37
+	OpSendGroupMarkdown                      = 38
+	OpSendGroupTextCard                      = 39
+	OpGetQQNickname                          = 40
+	OpSendGroupLargeCard                     = 41
+	OpSendAdaptiveLargeCard                  = 42
+	OpSendGroupThumbnailCard                 = 43
+	OpSendChannelThumbnailCard               = 44
+	OpUploadImage                            = 45
+	OpRespondButton                          = 46
+	OpSendChannelMarkdown                    = 47
+	OpGetRobotAppID                          = 48
+	OpGetAvatar                              = 49
+	OpGetQQAvatar                            = 50
+	OpRecallGroupMessage                     = 51
+	OpSendFriendMessage                      = 52
+	OpSendFriendVideo                        = 53
+	OpSendFriendAudio                        = 54
+	OpSendFriendMarkdown                     = 55
+	OpSendFriendTextCard                     = 56
+	OpSendFriendLargeCard                    = 57
+	OpSendFriendThumbnailCard                = 58
+	OpRecallFriendMessage                    = 59
+	OpSendAdaptivePrivateMessage             = 60
+	OpAddChannelReaction                     = 61
+	OpDeleteChannelReaction                  = 62
+	OpListChannelReactionUsers               = 63
+	OpGetRobotStats                          = 64
+	OpSendGroupButton                        = 65
+	OpSendFriendButton                       = 66
+	OpGetRobotToken                          = 67
+	OpGetRobotSecret                         = 68
+	OpSendGroupFile                          = 69
+	OpSendFriendFile                         = 70
+	OpSendGroupReply                         = 71
+	OpSendFriendReply                        = 72
+	OpGetRobotShareLink                      = 73
+	OpGetGroupBasicInfo                      = 74
+	OpGetRobotGroupStatus                    = 75
+	OpListGroupJoinRequests                  = 76
+	OpHandleGroupJoinRequest                 = 77
+	OpGetGroupMuteInfo                       = 78
+	OpIsGroupMemberMuted                     = 79
+	OpIsGroupMuted                           = 80
+	OpMuteGroupMembers                       = 81
+	OpIsGroupManagement                      = 82
+	OpListGroupAutoApprovalStrategies        = 83
+	OpCreateGroupAutoApprovalStrategy        = 84
+	OpUpdateGroupAutoApprovalStrategy        = 85
+	OpDeleteGroupAutoApprovalStrategy        = 86
+	OpExecuteGroupAutoApprovalStrategy       = 87
+	OpEditGroupAutoApprovalStrategyWhitelist = 88
+	OpGetGlobalCustomMenu                    = 89
+	OpEditGlobalCustomMenu                   = 90
+	OpListCommandPanels                      = 91
+	OpGetCommandPanel                        = 92
+	OpCreateCommandPanel                     = 93
+	OpUpdateCommandPanel                     = 94
+	OpDeleteCommandPanel                     = 95
+	OpEditCommandPanelTargets                = 96
 )
 
 // ==================== types.go ====================
@@ -288,6 +302,19 @@ type GroupJoinRequest struct {
 type GroupMuteInfo struct {
 	AllMuted     bool   `json:"all"`
 	MutedMembers string `json:"list"`
+}
+
+// GroupAutoApprovalStrategy 表示一条入群自动审批策略。
+type GroupAutoApprovalStrategy struct {
+	StrategyID         string   `json:"strategy_id"`
+	GroupOpenIDs       []string `json:"group_openids"`
+	GroupIDs           []string `json:"group_ids"`
+	IsEnabled          bool     `json:"is_enable"`
+	ExpireAt           string   `json:"expire_at"`
+	CreatedAt          string   `json:"created_at"`
+	UpdatedAt          string   `json:"updated_at"`
+	Remark             string   `json:"remark"`
+	WhitelistUserCount int64    `json:"whitelist_user_count"`
 }
 
 // MarkdownParam 表示 Markdown 模板的一组键和值。
@@ -599,6 +626,81 @@ func (ctx *RobotContext) IsGroupManagement(groupID string) (bool, error) {
 	return ctx.CallBool(OpIsGroupManagement, groupID)
 }
 
+// ListGroupAutoApprovalStrategies 查询当前机器人的入群自动审批策略列表，按创建时间倒序。
+func (ctx *RobotContext) ListGroupAutoApprovalStrategies() ([]GroupAutoApprovalStrategy, error) {
+	return decodeCall[[]GroupAutoApprovalStrategy](ctx, OpListGroupAutoApprovalStrategies)
+}
+
+// CreateGroupAutoApprovalStrategy 创建入群自动审批策略，成功返回策略 ID。
+func (ctx *RobotContext) CreateGroupAutoApprovalStrategy(groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string) (string, error) {
+	return ctx.Call(OpCreateGroupAutoApprovalStrategy, groupOpenIDs, groupIDs, boolText(enabled), expireAt, remark)
+}
+
+// UpdateGroupAutoApprovalStrategy 修改入群自动审批策略，成功返回过期时间。
+func (ctx *RobotContext) UpdateGroupAutoApprovalStrategy(strategyID string, editType int, groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string) (string, error) {
+	return ctx.Call(OpUpdateGroupAutoApprovalStrategy, strategyID, intText(editType), groupOpenIDs, groupIDs, boolText(enabled), expireAt, remark)
+}
+
+// DeleteGroupAutoApprovalStrategy 删除入群自动审批策略。
+func (ctx *RobotContext) DeleteGroupAutoApprovalStrategy(strategyID string) error {
+	_, err := ctx.Call(OpDeleteGroupAutoApprovalStrategy, strategyID)
+	return err
+}
+
+// ExecuteGroupAutoApprovalStrategy 对策略关联的全部群执行自动审批。
+func (ctx *RobotContext) ExecuteGroupAutoApprovalStrategy(strategyID string) error {
+	_, err := ctx.Call(OpExecuteGroupAutoApprovalStrategy, strategyID)
+	return err
+}
+
+// EditGroupAutoApprovalStrategyWhitelist 编辑策略白名单，成功返回更新时间。
+func (ctx *RobotContext) EditGroupAutoApprovalStrategyWhitelist(strategyID string, editType int, qq string) (string, error) {
+	return ctx.Call(OpEditGroupAutoApprovalStrategyWhitelist, strategyID, intText(editType), qq)
+}
+
+// GetGlobalCustomMenu 查询全局自定义菜单配置，返回 JSON 字符串。
+func (ctx *RobotContext) GetGlobalCustomMenu() (string, error) {
+	return ctx.Call(OpGetGlobalCustomMenu)
+}
+
+// EditGlobalCustomMenu 编辑全局自定义菜单；menuJSON 为空表示删除菜单。
+func (ctx *RobotContext) EditGlobalCustomMenu(menuJSON string) error {
+	_, err := ctx.Call(OpEditGlobalCustomMenu, menuJSON)
+	return err
+}
+
+// ListCommandPanels 根据场景查询指令面板列表，返回 JSON 字符串。
+func (ctx *RobotContext) ListCommandPanels(scene int) (string, error) {
+	return ctx.Call(OpListCommandPanels, intText(scene))
+}
+
+// GetCommandPanel 查询指令面板详细，返回 JSON 字符串。
+func (ctx *RobotContext) GetCommandPanel(panelID string) (string, error) {
+	return ctx.Call(OpGetCommandPanel, panelID)
+}
+
+// CreateCommandPanel 创建指令面板，成功返回面板 ID。
+func (ctx *RobotContext) CreateCommandPanel(scene, targetType int, panelConfigJSON, userIDs, groupOpenIDs string) (string, error) {
+	return ctx.Call(OpCreateCommandPanel, intText(scene), intText(targetType), panelConfigJSON, userIDs, groupOpenIDs)
+}
+
+// UpdateCommandPanel 修改指定指令面板配置，成功返回本次修改的版本号。
+func (ctx *RobotContext) UpdateCommandPanel(panelID, panelConfigJSON string) (string, error) {
+	return ctx.Call(OpUpdateCommandPanel, panelID, panelConfigJSON)
+}
+
+// DeleteCommandPanel 删除指定指令面板。
+func (ctx *RobotContext) DeleteCommandPanel(panelID string) error {
+	_, err := ctx.Call(OpDeleteCommandPanel, panelID)
+	return err
+}
+
+// EditCommandPanelTargets 对指定指令面板关联的用户或群进行添加或删除操作。
+func (ctx *RobotContext) EditCommandPanelTargets(panelID string, editType int, userIDs, groupOpenIDs string) error {
+	_, err := ctx.Call(OpEditCommandPanelTargets, panelID, intText(editType), userIDs, groupOpenIDs)
+	return err
+}
+
 // ==================== messages.go ====================
 func sendMessage(ctx *RobotContext, op int, target, content, media string, deleteMedia, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
@@ -812,14 +914,23 @@ func (ctx *RobotContext) SendFriendButton(friendID, keyboardID string, active, r
 }
 
 // ==================== helpers.go ====================
-// At 生成艾特指定用户的文本代码。
-func At(userID string) string { return "<@!" + userID + ">" }
+// At 生成艾特指定用户的 QQBot 文本代码。
+func At(userID string) string { return `<qqbot-at-userid="` + userID + `"/>` }
 
-// AtEveryone 返回艾特全体成员的文本代码。
-func AtEveryone() string { return "@everyone" }
+// AtEveryone 返回艾特全体成员的 QQBot 文本代码。
+func AtEveryone() string { return "<qqbot-at-everyone />" }
 
-// MentionedUserID 从 <@!用户ID> 中提取用户 ID。
+// MentionedUserID 从 QQBot 或旧版 <@!用户ID> 艾特代码中提取用户 ID。
 func MentionedUserID(text string) string {
+	const newPrefix = `<qqbot-at-userid="`
+	if start := strings.Index(text, newPrefix); start >= 0 {
+		rest := text[start+len(newPrefix):]
+		end := strings.IndexByte(rest, '"')
+		if end < 0 {
+			return ""
+		}
+		return rest[:end]
+	}
 	start := strings.Index(text, "<@!")
 	if start < 0 {
 		return ""
@@ -853,6 +964,11 @@ func InlineCommand(label, command string, send bool) string {
 		enter = "true"
 	}
 	return fmt.Sprintf("[%s](mqqapi://aio/inlinecmd?command=%s&reply=false&enter=%s)", label, url.QueryEscape(command), enter)
+}
+
+// InlineCommandInputText 生成可嵌入 Markdown 的聊天框输入指令代码。
+func InlineCommandInputText(label, command string) string {
+	return `<qqbot-cmd-inputtext="` + command + `"show="` + label + `"reference="false"/>`
 }
 
 // ResolveRedirect 请求网址并返回重定向后的地址。
@@ -1145,17 +1261,88 @@ func (api *BeeAPI) IsGroupManagement(groupID string) (bool, error) {
 	return api.ctx.IsGroupManagement(groupID)
 }
 
+// ListGroupAutoApprovalStrategies 查询当前机器人的入群自动审批策略列表，按创建时间倒序。
+func (api *BeeAPI) ListGroupAutoApprovalStrategies() ([]GroupAutoApprovalStrategy, error) {
+	return api.ctx.ListGroupAutoApprovalStrategies()
+}
+
+// CreateGroupAutoApprovalStrategy 创建入群自动审批策略，成功返回策略 ID。
+func (api *BeeAPI) CreateGroupAutoApprovalStrategy(groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string) (string, error) {
+	return api.ctx.CreateGroupAutoApprovalStrategy(groupOpenIDs, groupIDs, enabled, expireAt, remark)
+}
+
+// UpdateGroupAutoApprovalStrategy 修改入群自动审批策略，成功返回过期时间。
+func (api *BeeAPI) UpdateGroupAutoApprovalStrategy(strategyID string, editType int, groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string) (string, error) {
+	return api.ctx.UpdateGroupAutoApprovalStrategy(strategyID, editType, groupOpenIDs, groupIDs, enabled, expireAt, remark)
+}
+
+// DeleteGroupAutoApprovalStrategy 删除入群自动审批策略。
+func (api *BeeAPI) DeleteGroupAutoApprovalStrategy(strategyID string) error {
+	return api.ctx.DeleteGroupAutoApprovalStrategy(strategyID)
+}
+
+// ExecuteGroupAutoApprovalStrategy 对策略关联的全部群执行自动审批。
+func (api *BeeAPI) ExecuteGroupAutoApprovalStrategy(strategyID string) error {
+	return api.ctx.ExecuteGroupAutoApprovalStrategy(strategyID)
+}
+
+// EditGroupAutoApprovalStrategyWhitelist 编辑策略白名单，成功返回更新时间。
+func (api *BeeAPI) EditGroupAutoApprovalStrategyWhitelist(strategyID string, editType int, qq string) (string, error) {
+	return api.ctx.EditGroupAutoApprovalStrategyWhitelist(strategyID, editType, qq)
+}
+
+// GetGlobalCustomMenu 查询全局自定义菜单配置，返回 JSON 字符串。
+func (api *BeeAPI) GetGlobalCustomMenu() (string, error) {
+	return api.ctx.GetGlobalCustomMenu()
+}
+
+// EditGlobalCustomMenu 编辑全局自定义菜单；menuJSON 为空表示删除菜单。
+func (api *BeeAPI) EditGlobalCustomMenu(menuJSON string) error {
+	return api.ctx.EditGlobalCustomMenu(menuJSON)
+}
+
+// ListCommandPanels 根据场景查询指令面板列表，返回 JSON 字符串。
+func (api *BeeAPI) ListCommandPanels(scene int) (string, error) {
+	return api.ctx.ListCommandPanels(scene)
+}
+
+// GetCommandPanel 查询指令面板详细，返回 JSON 字符串。
+func (api *BeeAPI) GetCommandPanel(panelID string) (string, error) {
+	return api.ctx.GetCommandPanel(panelID)
+}
+
+// CreateCommandPanel 创建指令面板，成功返回面板 ID。
+func (api *BeeAPI) CreateCommandPanel(scene, targetType int, panelConfigJSON, userIDs, groupOpenIDs string) (string, error) {
+	return api.ctx.CreateCommandPanel(scene, targetType, panelConfigJSON, userIDs, groupOpenIDs)
+}
+
+// UpdateCommandPanel 修改指定指令面板配置，成功返回本次修改的版本号。
+func (api *BeeAPI) UpdateCommandPanel(panelID, panelConfigJSON string) (string, error) {
+	return api.ctx.UpdateCommandPanel(panelID, panelConfigJSON)
+}
+
+// DeleteCommandPanel 删除指定指令面板。
+func (api *BeeAPI) DeleteCommandPanel(panelID string) error {
+	return api.ctx.DeleteCommandPanel(panelID)
+}
+
+// EditCommandPanelTargets 对指定指令面板关联的用户或群进行添加或删除操作。
+func (api *BeeAPI) EditCommandPanelTargets(panelID string, editType int, userIDs, groupOpenIDs string) error {
+	return api.ctx.EditCommandPanelTargets(panelID, editType, userIDs, groupOpenIDs)
+}
+
 // ParseMention 判断消息是否艾特当前机器人，并返回移除艾特代码后的消息内容。
 func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
 	robotID, err := api.ctx.GetRobotID()
 	if err != nil {
 		return false, content, err
 	}
-	mention := At(robotID)
-	if !strings.Contains(content, mention) {
-		return false, strings.TrimSpace(content), nil
+	for _, mention := range []string{At(robotID), "<@!" + robotID + ">"} {
+		if strings.Contains(content, mention) {
+			return true, strings.TrimSpace(strings.ReplaceAll(content, mention, "")), nil
+		}
 	}
-	return true, strings.TrimSpace(strings.ReplaceAll(content, mention, "")), nil
+	return false, strings.TrimSpace(content), nil
 }
 
 // SendText 发送纯文本消息，默认使用当前消息进行被动回复。
@@ -1338,6 +1525,10 @@ var OpcodeNames = map[int]string{
 	73: "取机器人分享链接", 74: "取群基本信息", 75: "取机器人群内状态", 76: "取入群申请列表",
 	77: "处理入群请求", 78: "取群内禁言信息", 79: "取群内某人是否被禁言", 80: "取群内是否全员禁言中",
 	81: "设置群成员禁言", 82: "取是否为群管理高层",
+	83: "查询入群自动审批策略列表", 84: "创建入群自动审批策略", 85: "修改入群自动审批策略",
+	86: "删除入群自动审批策略", 87: "执行入群自动审批策略", 88: "编辑入群自动审批策略白名单",
+	89: "查询全局自定义菜单", 90: "编辑全局自定义菜单", 91: "查询指令面板列表", 92: "查询指令面板详细",
+	93: "创建指令面板", 94: "修改指令面板", 95: "删除指令面板", 96: "编辑指令面板关联对象",
 }
 
 // ==================== IPC transport ====================

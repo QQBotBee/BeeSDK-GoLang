@@ -17,5 +17,8 @@
 .idea/
 *.swp
 
+# Local SDK source snapshots
+e.txt
+
 # Local test files
 *_test.go

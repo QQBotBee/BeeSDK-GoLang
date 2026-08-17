@@ -49,7 +49,17 @@ Bee框架根目录\plugin_data\插件名称
 - Bee 入站 GBK 参数由 C 壳 Base64 封装，worker 解码为 UTF-8。
 - Go 出站 UTF-8 命令由 C 壳转换为 GBK；GBK 不可表示字符由 SDK编码为 UTF-16 `\uXXXX`。
 
-## 1～82 操作码
+## Markdown 辅助函数
+
+```go
+At("user-openid")                 // <qqbot-at-userid="user-openid"/>
+AtEveryone()                      // <qqbot-at-everyone />
+InlineCommandInputText("帮助", "/help")
+```
+
+`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送。`MentionedUserID` 同时支持解析新版 `qqbot-at-userid` 和旧版 `<@!用户ID>` 艾特代码。
+
+## 1～96 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -135,6 +145,20 @@ Bee框架根目录\plugin_data\插件名称
 | 80 | `OpIsGroupMuted` | 取群内是否全员禁言中 |
 | 81 | `OpMuteGroupMembers` | 设置群成员禁言 |
 | 82 | `OpIsGroupManagement` | 取是否为群管理高层 |
+| 83 | `OpListGroupAutoApprovalStrategies` | 查询入群自动审批策略列表 |
+| 84 | `OpCreateGroupAutoApprovalStrategy` | 创建入群自动审批策略 |
+| 85 | `OpUpdateGroupAutoApprovalStrategy` | 修改入群自动审批策略 |
+| 86 | `OpDeleteGroupAutoApprovalStrategy` | 删除入群自动审批策略 |
+| 87 | `OpExecuteGroupAutoApprovalStrategy` | 执行入群自动审批策略 |
+| 88 | `OpEditGroupAutoApprovalStrategyWhitelist` | 编辑入群自动审批策略白名单 |
+| 89 | `OpGetGlobalCustomMenu` | 查询全局自定义菜单 |
+| 90 | `OpEditGlobalCustomMenu` | 编辑全局自定义菜单 |
+| 91 | `OpListCommandPanels` | 查询指令面板列表 |
+| 92 | `OpGetCommandPanel` | 查询指令面板详细 |
+| 93 | `OpCreateCommandPanel` | 创建指令面板 |
+| 94 | `OpUpdateCommandPanel` | 修改指令面板 |
+| 95 | `OpDeleteCommandPanel` | 删除指令面板 |
+| 96 | `OpEditCommandPanelTargets` | 编辑指令面板关联对象 |
 
 ## 新增群管理 API
 
@@ -159,5 +183,37 @@ Bee框架根目录\plugin_data\插件名称
 - `RobotGroupStatus`
 - `GroupJoinRequest`
 - `GroupMuteInfo`
+
+## 入群自动审批策略 API
+
+`BeeAPI` 和 `RobotContext` 均提供以下方法：
+
+| 方法 | 返回 | 说明 |
+|---|---|---|
+| `ListGroupAutoApprovalStrategies()` | `[]GroupAutoApprovalStrategy` | 查询当前机器人的策略列表，按创建时间倒序 |
+| `CreateGroupAutoApprovalStrategy(groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string)` | `string` | 创建策略，成功返回策略 ID；群 OpenID 和群号二选一，多个值用换行分隔 |
+| `UpdateGroupAutoApprovalStrategy(strategyID string, editType int, groupOpenIDs, groupIDs string, enabled bool, expireAt, remark string)` | `string` | 修改策略，成功返回过期时间；`editType` 为 0 增加、1 删除 |
+| `DeleteGroupAutoApprovalStrategy(strategyID string)` | `error` | 删除策略 |
+| `ExecuteGroupAutoApprovalStrategy(strategyID string)` | `error` | 对策略关联的全部群执行自动审批，需机器人是管理员 |
+| `EditGroupAutoApprovalStrategyWhitelist(strategyID string, editType int, qq string)` | `string` | 编辑白名单，成功返回更新时间；`editType` 为 0 增加、1 删除，多个 QQ 用换行分隔 |
+
+相关结构体：
+
+- `GroupAutoApprovalStrategy`
+
+## 自定义菜单和指令面板 API
+
+`BeeAPI` 和 `RobotContext` 均提供以下方法：
+
+| 方法 | 返回 | 说明 |
+|---|---|---|
+| `GetGlobalCustomMenu()` | `string` | 查询全局自定义菜单配置，返回 JSON 字符串 |
+| `EditGlobalCustomMenu(menuJSON string)` | `error` | 编辑全局自定义菜单；`menuJSON` 为空表示删除菜单 |
+| `ListCommandPanels(scene int)` | `string` | 根据场景查询指令面板列表，返回 JSON 字符串；`scene` 为 0 QQ好友、1 群聊、2 文字频道、3 频道私信 |
+| `GetCommandPanel(panelID string)` | `string` | 查询指令面板详细，返回 JSON 字符串 |
+| `CreateCommandPanel(scene, targetType int, panelConfigJSON, userIDs, groupOpenIDs string)` | `string` | 创建指令面板，成功返回面板 ID；`targetType` 为 0 所有人、1 指定范围 |
+| `UpdateCommandPanel(panelID, panelConfigJSON string)` | `string` | 修改指定指令面板配置，成功返回版本号 |
+| `DeleteCommandPanel(panelID string)` | `error` | 删除指定指令面板 |
+| `EditCommandPanelTargets(panelID string, editType int, userIDs, groupOpenIDs string)` | `error` | 编辑指令面板关联用户或群；`editType` 为 0 增加、1 删除 |
 
 各方法完整参数签名和类型定义直接查看根目录 `bee_sdk.go`。该文件是 SDK 的单一实现源，不拆分为大量小文件。
