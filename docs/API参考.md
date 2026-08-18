@@ -59,7 +59,7 @@ InlineCommandInputText("帮助", "/help")
 
 `InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送。`MentionedUserID` 同时支持解析新版 `qqbot-at-userid` 和旧版 `<@!用户ID>` 艾特代码。
 
-## 1～96 操作码
+## 1～97 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -102,7 +102,7 @@ InlineCommandInputText("帮助", "/help")
 | 37 | `OpGetFrameworkInfo` | 取框架信息 |
 | 38 | `OpSendGroupMarkdown` | 发送群 Markdown |
 | 39 | `OpSendGroupTextCard` | 发送群文字卡片 |
-| 40 | `OpGetQQNickname` | 取 QQ 昵称 |
+| 40 | `OpGetQQNickname` | 取某人昵称 |
 | 41 | `OpSendGroupLargeCard` | 发送群大图卡片 |
 | 42 | `OpSendAdaptiveLargeCard` | 发送自适应大图卡片 |
 | 43 | `OpSendGroupThumbnailCard` | 发送群缩略图卡片 |
@@ -159,6 +159,7 @@ InlineCommandInputText("帮助", "/help")
 | 94 | `OpUpdateCommandPanel` | 修改指令面板 |
 | 95 | `OpDeleteCommandPanel` | 删除指令面板 |
 | 96 | `OpEditCommandPanelTargets` | 编辑指令面板关联对象 |
+| 97 | `OpGetGroupMuteInfoEx` | 取群内禁言信息 Ex |
 
 ## 新增群管理 API
 
@@ -172,6 +173,7 @@ InlineCommandInputText("帮助", "/help")
 | `ListGroupJoinRequests(groupID string)` | `[]GroupJoinRequest` | 返回入群申请列表，需管理员身份调用 |
 | `HandleGroupJoinRequest(groupID, userID, requestID string, action int, rejectReason string, blockUser bool)` | `error` | 处理入群请求，`action` 为 0 同意、1 拒绝 |
 | `GetGroupMuteInfo(groupID string)` | `GroupMuteInfo` | 返回全员禁言状态和被禁言成员列表，需管理员身份调用 |
+| `GetGroupMuteInfoEx(groupID string)` | `[]GroupMuteMemberInfoEx` | 返回被禁言成员 ID、昵称、统一 ID 和禁言结束时间，需管理员身份调用 |
 | `IsGroupMemberMuted(groupID, userID string)` | `bool` | 查询某人是否被禁言，需管理员身份调用 |
 | `IsGroupMuted(groupID string)` | `bool` | 查询全员禁言是否开启，需管理员身份调用 |
 | `MuteGroupMembers(groupID, userIDs string, seconds int)` | `error` | 设置成员禁言，`seconds` 为 0 表示解除禁言；多个用户 ID 用换行分隔 |
@@ -183,6 +185,11 @@ InlineCommandInputText("帮助", "/help")
 - `RobotGroupStatus`
 - `GroupJoinRequest`
 - `GroupMuteInfo`
+- `GroupMuteMemberInfoEx`
+
+## 昵称 API
+
+`RobotContext` 提供 `GetQQNickname(qqOrUserID string)` 和 `GetUserNickname(userIDOrQQ string)`；`BeeAPI` 提供 `GetUserNickname(userIDOrQQ string)`。二者均调用 40 号操作码，可传 QQ 或用户 ID，失败时框架返回空字符串。
 
 ## 入群自动审批策略 API
 

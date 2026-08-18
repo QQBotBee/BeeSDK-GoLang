@@ -12,7 +12,7 @@ Bee.exe
 
 bee_go_worker.exe
   ├─ plugin_main.go 业务回调
-  ├─ bee_sdk.go 完整 1～82 API
+  ├─ bee_sdk.go 完整 1～97 API
   └─ JSON Lines IPC
 ```
 

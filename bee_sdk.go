@@ -118,6 +118,7 @@ const (
 	OpUpdateCommandPanel                     = 94
 	OpDeleteCommandPanel                     = 95
 	OpEditCommandPanelTargets                = 96
+	OpGetGroupMuteInfoEx                     = 97
 )
 
 // ==================== types.go ====================
@@ -302,6 +303,14 @@ type GroupJoinRequest struct {
 type GroupMuteInfo struct {
 	AllMuted     bool   `json:"all"`
 	MutedMembers string `json:"list"`
+}
+
+// GroupMuteMemberInfoEx 表示一名群内被禁言成员的详细信息。
+type GroupMuteMemberInfoEx struct {
+	UserID      string `json:"id"`
+	MuteEndTime string `json:"end"`
+	Nickname    string `json:"nick"`
+	UnionOpenID string `json:"union_openid"`
 }
 
 // GroupAutoApprovalStrategy 表示一条入群自动审批策略。
@@ -506,9 +515,14 @@ func (ctx *RobotContext) GetFrameworkInfo() (FrameworkInfo, error) {
 	return decodeCall[FrameworkInfo](ctx, OpGetFrameworkInfo)
 }
 
-// GetQQNickname 封装对应的 Bee 框架 API；参数和返回值与方法签名一致。
-func (ctx *RobotContext) GetQQNickname(qq string) (string, error) {
-	return ctx.Call(OpGetQQNickname, qq)
+// GetQQNickname 获取 QQ 或用户 ID 对应的昵称，失败时框架返回空字符串。
+func (ctx *RobotContext) GetQQNickname(qqOrUserID string) (string, error) {
+	return ctx.GetUserNickname(qqOrUserID)
+}
+
+// GetUserNickname 获取 QQ 或用户 ID 对应的昵称，失败时框架返回空字符串。
+func (ctx *RobotContext) GetUserNickname(userIDOrQQ string) (string, error) {
+	return ctx.Call(OpGetQQNickname, userIDOrQQ)
 }
 
 // UploadImage 封装对应的 Bee 框架 API；参数和返回值与方法签名一致。
@@ -603,6 +617,18 @@ func (ctx *RobotContext) HandleGroupJoinRequest(groupID, userID, requestID strin
 // GetGroupMuteInfo 返回指定群的禁言状态；需管理员身份调用。
 func (ctx *RobotContext) GetGroupMuteInfo(groupID string) (GroupMuteInfo, error) {
 	return decodeCall[GroupMuteInfo](ctx, OpGetGroupMuteInfo, groupID)
+}
+
+// GetGroupMuteInfoEx 返回指定群内被禁言成员的详细列表；需管理员身份调用。
+func (ctx *RobotContext) GetGroupMuteInfoEx(groupID string) ([]GroupMuteMemberInfoEx, error) {
+	type response struct {
+		List []GroupMuteMemberInfoEx `json:"list"`
+	}
+	result, err := decodeCall[response](ctx, OpGetGroupMuteInfoEx, groupID)
+	if err != nil {
+		return nil, err
+	}
+	return result.List, nil
 }
 
 // IsGroupMemberMuted 查询指定群成员是否被禁言；需管理员身份调用。
@@ -1211,6 +1237,11 @@ func (api *BeeAPI) MuteAll(guildID string, seconds int) error {
 	return api.ctx.MuteGuild(guildID, seconds)
 }
 
+// GetUserNickname 获取 QQ 或用户 ID 对应的昵称，失败时框架返回空字符串。
+func (api *BeeAPI) GetUserNickname(userIDOrQQ string) (string, error) {
+	return api.ctx.GetUserNickname(userIDOrQQ)
+}
+
 // GetRobotShareLink 返回机器人分享链接，用于邀请用户添加机器人为好友。
 func (api *BeeAPI) GetRobotShareLink() (string, error) {
 	return api.ctx.GetRobotShareLink()
@@ -1239,6 +1270,11 @@ func (api *BeeAPI) HandleGroupJoinRequest(groupID, userID, requestID string, act
 // GetGroupMuteInfo 返回指定群的禁言状态；需管理员身份调用。
 func (api *BeeAPI) GetGroupMuteInfo(groupID string) (GroupMuteInfo, error) {
 	return api.ctx.GetGroupMuteInfo(groupID)
+}
+
+// GetGroupMuteInfoEx 返回指定群内被禁言成员的详细列表；需管理员身份调用。
+func (api *BeeAPI) GetGroupMuteInfoEx(groupID string) ([]GroupMuteMemberInfoEx, error) {
+	return api.ctx.GetGroupMuteInfoEx(groupID)
 }
 
 // IsGroupMemberMuted 查询指定群成员是否被禁言；需管理员身份调用。
@@ -1529,6 +1565,7 @@ var OpcodeNames = map[int]string{
 	86: "删除入群自动审批策略", 87: "执行入群自动审批策略", 88: "编辑入群自动审批策略白名单",
 	89: "查询全局自定义菜单", 90: "编辑全局自定义菜单", 91: "查询指令面板列表", 92: "查询指令面板详细",
 	93: "创建指令面板", 94: "修改指令面板", 95: "删除指令面板", 96: "编辑指令面板关联对象",
+	97: "取群内禁言信息Ex",
 }
 
 // ==================== IPC transport ====================
