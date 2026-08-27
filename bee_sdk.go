@@ -1119,6 +1119,71 @@ const (
 	MessageIntercept = 1
 )
 
+// PluginInfo 描述 Bee 插件在初始化时返回给框架的元数据。
+type PluginInfo struct {
+	Name        string
+	Author      string
+	Version     string
+	Description string
+}
+
+// MarshalJSON 使用 Bee 原 SDK 初始化协议要求的字段名。
+func (info PluginInfo) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Name   string `json:"name"`
+		Author string `json:"author"`
+		Ver    string `json:"ver"`
+		Text   string `json:"text"`
+	}{info.Name, info.Author, info.Version, info.Description})
+}
+
+// PluginInitialization 保存 Bee 初始化时传入的全局上下文信息。
+type PluginInitialization struct {
+	APIText  string
+	PluginID string
+}
+
+var beePluginInit struct {
+	sync.Mutex
+	done bool
+	info PluginInitialization
+}
+
+// InitializeBeePlugin 按 Bee 初始化协议解析机器人上下文并返回插件信息 JSON。
+// 与易语言 SDK 的“置全局初始化”一致，此函数只在第一次调用时生效；后续调用返回空字符串。
+func InitializeBeePlugin(robotJSON string, info PluginInfo) (string, error) {
+	beePluginInit.Lock()
+	defer beePluginInit.Unlock()
+	if beePluginInit.done {
+		return "", nil
+	}
+	var ctx RobotContext
+	if err := json.Unmarshal([]byte(robotJSON), &ctx); err != nil {
+		return "", fmt.Errorf("解析 Bee 初始化上下文: %w", err)
+	}
+	out, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
+	beePluginInit.info = PluginInitialization{APIText: ctx.APIText, PluginID: ctx.PluginID}
+	beePluginInit.done = true
+	return string(out), nil
+}
+
+// BeePluginInitialization 返回第一次初始化时解析出的 api 和 plugin_id。
+func BeePluginInitialization() PluginInitialization {
+	beePluginInit.Lock()
+	defer beePluginInit.Unlock()
+	return beePluginInit.info
+}
+
+func resetBeePluginInitializationForTest() {
+	beePluginInit.Lock()
+	defer beePluginInit.Unlock()
+	beePluginInit.done = false
+	beePluginInit.info = PluginInitialization{}
+}
+
 // RobotContext 保存框架随事件传入的机器人上下文。
 type RobotContext struct {
 	APIText   string          `json:"api"`
@@ -1132,6 +1197,61 @@ type RobotContext struct {
 	PluginID  string          `json:"plugin_id"`
 	EventID   string          `json:"event_id"`
 	Raw       json.RawMessage `json:"raw"`
+}
+
+// UnmarshalJSON 兼容 Bee 机器人上下文中 api 字段的字符串和数字两种形态。
+func (ctx *RobotContext) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		API       json.RawMessage `json:"api"`
+		Message   string          `json:"msg"`
+		MessageID string          `json:"msg_id"`
+		ChannelID string          `json:"channel_id"`
+		GuildID   string          `json:"guild_id"`
+		FromID    string          `json:"form_id"`
+		RobotID   string          `json:"robot_id"`
+		PluginID  string          `json:"plugin_id"`
+		EventID   string          `json:"event_id"`
+		Raw       json.RawMessage `json:"raw"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	apiText, err := jsonRawScalarText(raw.API)
+	if err != nil {
+		return fmt.Errorf("api: %w", err)
+	}
+	*ctx = RobotContext{
+		APIText:   apiText,
+		Message:   raw.Message,
+		MessageID: raw.MessageID,
+		ChannelID: raw.ChannelID,
+		GuildID:   raw.GuildID,
+		FromID:    raw.FromID,
+		RobotID:   raw.RobotID,
+		PluginID:  raw.PluginID,
+		EventID:   raw.EventID,
+		Raw:       raw.Raw,
+	}
+	return nil
+}
+
+func jsonRawScalarText(raw json.RawMessage) (string, error) {
+	value := strings.TrimSpace(string(raw))
+	if value == "" || value == "null" {
+		return "", nil
+	}
+	if strings.HasPrefix(value, `"`) {
+		var text string
+		if err := json.Unmarshal(raw, &text); err != nil {
+			return "", err
+		}
+		return text, nil
+	}
+	var number json.Number
+	if err := json.Unmarshal(raw, &number); err != nil {
+		return "", err
+	}
+	return number.String(), nil
 }
 
 // BeeAPI 是面向插件开发者的简化 SDK 入口。

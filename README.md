@@ -97,6 +97,8 @@ const (
 )
 ```
 
+SDK 同时提供与易语言 SDK 初始化协议对齐的 `PluginInfo` 和 `InitializeBeePlugin`。当前模板仍由构建工具读取上述常量生成 `Bee_初始化` 的返回 JSON，普通插件开发不需要手动调用初始化函数。
+
 `PluginName` 是插件名称的唯一来源，同时决定：
 
 - Bee 插件列表中显示的名称；
@@ -150,6 +152,8 @@ Bee框架根目录\plugin_data\插件名称\bee_go_worker.exe
 | `onDisable` | 插件被禁用 | 停止任务、释放运行期资源、关闭设置窗口 |
 | `onUnload` | 插件被卸载 | 最终清理和卸载日志 |
 | `onSettings` | 用户点击“设置” | 打开或聚焦设置窗口 |
+
+`InitializeBeePlugin(robotJSON, PluginInfo{...})` 会解析初始化上下文中的 `api` 和 `plugin_id`，并返回 Bee 需要的 `name`、`author`、`ver`、`text` JSON；和易语言 SDK 一样，第二次调用会返回空字符串。由于本模板使用 C 壳隔离 Go Worker，默认初始化返回值由构建阶段生成，`onInitialize` 只负责插件业务初始化。
 
 生命周期顺序：
 

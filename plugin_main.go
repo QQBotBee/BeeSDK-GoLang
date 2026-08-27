@@ -11,17 +11,10 @@ const (
 	PluginDescription = "Bee C shell + Go worker template"
 )
 
-type PluginMetadata struct {
-	Name   string `json:"name"`
-	Author string `json:"author"`
-	Ver    string `json:"ver"`
-	Text   string `json:"text"`
-}
-
 // pluginMetadata 只返回插件名称、作者、版本和说明，不是运行时初始化入口。
 // 构建工具会读取上方常量生成 Bee_初始化 的返回信息。
-func pluginMetadata() PluginMetadata {
-	return PluginMetadata{Name: PluginName, Author: PluginAuthor, Ver: PluginVersion, Text: PluginDescription}
+func pluginMetadata() PluginInfo {
+	return PluginInfo{Name: PluginName, Author: PluginAuthor, Version: PluginVersion, Description: PluginDescription}
 }
 
 // 以下是插件业务回调模板。

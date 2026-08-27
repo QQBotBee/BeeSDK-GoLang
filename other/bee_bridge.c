@@ -206,6 +206,31 @@ static const char *json_string_field(const char *json, const char *field, char *
     return *owned;
 }
 
+static const char *json_string_or_number_field(const char *json, const char *field, char **owned) {
+    char pattern[64];
+    const char *start, *end;
+    size_t length;
+    sprintf(pattern, "\"%s\":", field);
+    start = strstr(json, pattern);
+    if (!start) return NULL;
+    start += strlen(pattern);
+    while (*start == ' ' || *start == '\t' || *start == '\r' || *start == '\n') start++;
+    if (*start == '"') {
+        start++;
+        end = strchr(start, '"');
+    } else {
+        end = start;
+        while ((*end >= '0' && *end <= '9') || *end == '-') end++;
+    }
+    if (!end || end == start) return NULL;
+    length = (size_t)(end - start);
+    *owned = (char *)HeapAlloc(GetProcessHeap(), 0, length + 1);
+    if (!*owned) return NULL;
+    memcpy(*owned, start, length);
+    (*owned)[length] = 0;
+    return *owned;
+}
+
 static unsigned char *base64_decode(const char *text, DWORD *size_out) {
     static signed char map[256];
     static BOOL initialized;
@@ -299,7 +324,7 @@ static BOOL service_api_call(const char *line, const char *robot_json) {
     char *result;
     BOOL ok = FALSE;
     if (!json_string_field(line, "id", &id) || !json_string_field(line, "command_b64", &command_b64)) goto done;
-    if (!json_string_field(robot_json ? robot_json : "", "api", &api_text)) {
+    if (!json_string_or_number_field(robot_json ? robot_json : "", "api", &api_text)) {
         send_api_result(id, NULL, "robot JSON missing api"); goto done;
     }
     address = strtoul(api_text, NULL, 10);

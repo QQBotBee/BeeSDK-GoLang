@@ -18,6 +18,23 @@ _, _ = bee.ChannelDM(guildID).SendText("频道私信")
 
 `BeeAPI` 包含当前回调的 `plugin_id`、`msg_id` 和 `event_id`，禁止全局缓存后跨消息使用。
 
+## 初始化协议
+
+Go SDK 提供与易语言 SDK 初始化段对齐的类型和函数：
+
+```go
+info := PluginInfo{
+    Name:        "测试插件",
+    Author:      "周星星",
+    Version:     "1.0",
+    Description: "这是一个测试插件\n欢迎使用",
+}
+
+metadataJSON, err := InitializeBeePlugin(robotJSON, info)
+```
+
+`PluginInfo` 序列化为 Bee 需要的 `name`、`author`、`ver`、`text` JSON 字段。`InitializeBeePlugin` 会解析初始化机器人 JSON 中的 `api` 和 `plugin_id`，并且只在第一次调用时返回元数据 JSON；后续调用返回空字符串。当前模板的 `Bee_初始化` 返回值仍由构建工具根据 `plugin_main.go` 常量生成，普通插件业务通常只需要修改这些常量。
+
 ## 插件应用数据目录
 
 使用 SDK 获取当前插件专属的数据目录：
@@ -43,6 +60,7 @@ Bee框架根目录\plugin_data\插件名称
 
 - 分隔符：`%@#bee#@%`
 - 操作码 31、45、48 不携带 `plugin_id`；其余操作码自动携带。
+- 机器人 JSON 中的 `api` 字段兼容字符串和数字两种形态。
 - 主动消息清空 `msg_id`，但保留 `event_id`。
 - 参数中不能包含协议分隔符。
 - C 壳在 Bee 进程内调用 `robot.api`；Go worker 不直接使用函数地址。
