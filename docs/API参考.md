@@ -61,7 +61,7 @@ Bee框架根目录\plugin_data\插件名称
 - 分隔符：`%@#bee#@%`
 - 操作码 31、45、48 不携带 `plugin_id`；其余操作码自动携带。
 - 机器人 JSON 中的 `api` 字段兼容字符串和数字两种形态。
-- 主动消息清空 `msg_id`，但保留 `event_id`。
+- 主动消息清空 `msg_id` 和 `event_id`。
 - 参数中不能包含协议分隔符。
 - C 壳在 Bee 进程内调用 `robot.api`；Go worker 不直接使用函数地址。
 - Bee 入站 GBK 参数由 C 壳 Base64 封装，worker 解码为 UTF-8。

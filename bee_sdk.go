@@ -1654,7 +1654,7 @@ func boolText(v bool) string {
 func intText(v int) string { return strconv.Itoa(v) }
 func activeIDs(ctx *RobotContext, active bool) (string, string) {
 	if active {
-		return "", ctx.EventID
+		return "", ""
 	}
 	return ctx.MessageID, ctx.EventID
 }
