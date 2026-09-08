@@ -70,14 +70,15 @@ Bee框架根目录\plugin_data\插件名称
 ## Markdown 辅助函数
 
 ```go
-At("user-openid")                 // <qqbot-at-userid="user-openid"/>
-AtEveryone()                      // <qqbot-at-everyone />
-InlineCommandInputText("帮助", "/help")
+at, _ := bee.At("user-openid")
+everyone, _ := bee.AtEveryone()
+input, _ := bee.InlineCommandInputText("帮助", "/help")
+send, _ := bee.InlineCommand("发送", "/send")
 ```
 
-`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送。`MentionedUserID` 同时支持解析新版 `qqbot-at-userid` 和旧版 `<@!用户ID>` 艾特代码。
+`BeeAPI` 和 `RobotContext` 的同名方法分别调用 98、99、100、101、103、104 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 同时支持解析新版 `qqbot-at-userid` 和旧版 `<@!用户ID>` 艾特代码。
 
-## 1～97 操作码
+## 1～104 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -178,6 +179,28 @@ InlineCommandInputText("帮助", "/help")
 | 95 | `OpDeleteCommandPanel` | 删除指令面板 |
 | 96 | `OpEditCommandPanelTargets` | 编辑指令面板关联对象 |
 | 97 | `OpGetGroupMuteInfoEx` | 取群内禁言信息 Ex |
+| 98 | `OpAt` | 艾特指定用户 |
+| 99 | `OpAtEveryone` | 艾特全体成员 |
+| 100 | `OpInlineCommandInput` | 生成点击后填入聊天框的 Markdown 指令 |
+| 101 | `OpInlineCommandSend` | 生成点击后直接发送的 Markdown 指令 |
+| 103 | `OpIsQuotedMessage` | 判断当前消息是否为引用回复 |
+| 104 | `OpQuotedMessageContent` | 获取被引用消息的原内容 |
+
+`e.txt` 未定义操作码 102，因此 Go SDK 也不提供 102。
+
+## 引用消息 API
+
+引用消息接口需要使用当前回调的上下文：
+
+```go
+isQuoted, _ := bee.IsQuotedMessage(robotID)
+if isQuoted {
+    original, _ := bee.QuotedMessageContent(robotID)
+    _ = original
+}
+```
+
+`robotID` 是机器人 ID。非引用消息调用 `QuotedMessageContent` 时，框架返回空字符串。
 
 ## 新增群管理 API
 

@@ -119,6 +119,12 @@ const (
 	OpDeleteCommandPanel                     = 95
 	OpEditCommandPanelTargets                = 96
 	OpGetGroupMuteInfoEx                     = 97
+	OpAt                                     = 98
+	OpAtEveryone                             = 99
+	OpInlineCommandInput                     = 100
+	OpInlineCommandSend                      = 101
+	OpIsQuotedMessage                        = 103
+	OpQuotedMessageContent                   = 104
 )
 
 // ==================== types.go ====================
@@ -727,6 +733,36 @@ func (ctx *RobotContext) EditCommandPanelTargets(panelID string, editType int, u
 	return err
 }
 
+// At 通过 Bee API 生成艾特指定用户的文本代码。
+func (ctx *RobotContext) At(userID string) (string, error) {
+	return ctx.Call(OpAt, userID)
+}
+
+// AtEveryone 通过 Bee API 生成艾特全体成员的文本代码。
+func (ctx *RobotContext) AtEveryone() (string, error) {
+	return ctx.Call(OpAtEveryone)
+}
+
+// InlineCommandInputText 通过 Bee API 生成点击后填入聊天框但不发送的 Markdown 指令。
+func (ctx *RobotContext) InlineCommandInputText(label, command string) (string, error) {
+	return ctx.Call(OpInlineCommandInput, label, command)
+}
+
+// InlineCommand 通过 Bee API 生成点击后直接发送的 Markdown 指令。
+func (ctx *RobotContext) InlineCommand(label, command string) (string, error) {
+	return ctx.Call(OpInlineCommandSend, label, command)
+}
+
+// IsQuotedMessage 判断指定机器人当前消息是否为引用回复。
+func (ctx *RobotContext) IsQuotedMessage(robotID string) (bool, error) {
+	return ctx.CallBool(OpIsQuotedMessage, robotID)
+}
+
+// QuotedMessageContent 获取指定机器人当前消息被引用消息的原内容。
+func (ctx *RobotContext) QuotedMessageContent(robotID string) (string, error) {
+	return ctx.Call(OpQuotedMessageContent, robotID)
+}
+
 // ==================== messages.go ====================
 func sendMessage(ctx *RobotContext, op int, target, content, media string, deleteMedia, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
@@ -940,12 +976,6 @@ func (ctx *RobotContext) SendFriendButton(friendID, keyboardID string, active, r
 }
 
 // ==================== helpers.go ====================
-// At 生成艾特指定用户的 QQBot 文本代码。
-func At(userID string) string { return `<qqbot-at-userid="` + userID + `"/>` }
-
-// AtEveryone 返回艾特全体成员的 QQBot 文本代码。
-func AtEveryone() string { return "<qqbot-at-everyone />" }
-
 // MentionedUserID 从 QQBot 或旧版 <@!用户ID> 艾特代码中提取用户 ID。
 func MentionedUserID(text string) string {
 	const newPrefix = `<qqbot-at-userid="`
@@ -981,20 +1011,6 @@ func ImageDownloadURL(message string) string {
 		return ""
 	}
 	return rest[:end]
-}
-
-// InlineCommand 生成可嵌入 Markdown 的 QQ 指令链接。
-func InlineCommand(label, command string, send bool) string {
-	enter := "false"
-	if send {
-		enter = "true"
-	}
-	return fmt.Sprintf("[%s](mqqapi://aio/inlinecmd?command=%s&reply=false&enter=%s)", label, url.QueryEscape(command), enter)
-}
-
-// InlineCommandInputText 生成可嵌入 Markdown 的聊天框输入指令代码。
-func InlineCommandInputText(label, command string) string {
-	return `<qqbot-cmd-inputtext="` + command + `"show="` + label + `"reference="false"/>`
 }
 
 // ResolveRedirect 请求网址并返回重定向后的地址。
@@ -1342,6 +1358,36 @@ func (api *BeeAPI) ChannelDM(guildID string) *MessageTarget {
 	return &MessageTarget{ctx: api.ctx, targetID: guildID, kind: targetChannelDM}
 }
 
+// At 通过当前 Bee 回调上下文生成艾特指定用户的文本代码。
+func (api *BeeAPI) At(userID string) (string, error) {
+	return api.ctx.At(userID)
+}
+
+// AtEveryone 通过当前 Bee 回调上下文生成艾特全体成员的文本代码。
+func (api *BeeAPI) AtEveryone() (string, error) {
+	return api.ctx.AtEveryone()
+}
+
+// InlineCommandInputText 通过当前 Bee 回调上下文生成聊天框输入指令。
+func (api *BeeAPI) InlineCommandInputText(label, command string) (string, error) {
+	return api.ctx.InlineCommandInputText(label, command)
+}
+
+// InlineCommand 通过当前 Bee 回调上下文生成直接发送指令。
+func (api *BeeAPI) InlineCommand(label, command string) (string, error) {
+	return api.ctx.InlineCommand(label, command)
+}
+
+// IsQuotedMessage 判断当前回调消息是否为指定机器人的引用回复。
+func (api *BeeAPI) IsQuotedMessage(robotID string) (bool, error) {
+	return api.ctx.IsQuotedMessage(robotID)
+}
+
+// QuotedMessageContent 获取当前回调消息被引用消息的原内容。
+func (api *BeeAPI) QuotedMessageContent(robotID string) (string, error) {
+	return api.ctx.QuotedMessageContent(robotID)
+}
+
 // IsGuildOwner 判断指定用户是否为频道主。
 func (api *BeeAPI) IsGuildOwner(guildID, userID string) (bool, error) {
 	return api.ctx.IsGuildOwner(guildID, userID)
@@ -1493,7 +1539,7 @@ func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
 	if err != nil {
 		return false, content, err
 	}
-	for _, mention := range []string{At(robotID), "<@!" + robotID + ">"} {
+	for _, mention := range []string{`<qqbot-at-userid="` + robotID + `"/>`, "<@!" + robotID + ">"} {
 		if strings.Contains(content, mention) {
 			return true, strings.TrimSpace(strings.ReplaceAll(content, mention, "")), nil
 		}
@@ -1686,6 +1732,8 @@ var OpcodeNames = map[int]string{
 	89: "查询全局自定义菜单", 90: "编辑全局自定义菜单", 91: "查询指令面板列表", 92: "查询指令面板详细",
 	93: "创建指令面板", 94: "修改指令面板", 95: "删除指令面板", 96: "编辑指令面板关联对象",
 	97: "取群内禁言信息Ex",
+	98: "艾特", 99: "艾特全体成员", 100: "嵌入指令_聊天框", 101: "嵌入指令_直接发送",
+	103: "是否为引用消息回复", 104: "取被引用消息内容",
 }
 
 // ==================== IPC transport ====================
