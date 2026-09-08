@@ -74,9 +74,10 @@ at, _ := bee.At("user-openid")
 everyone, _ := bee.AtEveryone()
 input, _ := bee.InlineCommandInputText("帮助", "/help")
 send, _ := bee.InlineCommand("发送", "/send")
+mentionedID, _ := bee.MentionedUserID(message)
 ```
 
-`BeeAPI` 和 `RobotContext` 的同名方法分别调用 98、99、100、101、103、104 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 同时支持解析新版 `qqbot-at-userid` 和旧版 `<@!用户ID>` 艾特代码。
+`BeeAPI` 和 `RobotContext` 的同名方法分别调用 98、99、100、101、102、103、104 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 通过 102 号 API 从消息中获取被艾特人 ID。
 
 ## 1～104 操作码
 
@@ -183,10 +184,9 @@ send, _ := bee.InlineCommand("发送", "/send")
 | 99 | `OpAtEveryone` | 艾特全体成员 |
 | 100 | `OpInlineCommandInput` | 生成点击后填入聊天框的 Markdown 指令 |
 | 101 | `OpInlineCommandSend` | 生成点击后直接发送的 Markdown 指令 |
+| 102 | `OpMentionedUserID` | 获取消息中的被艾特人 ID |
 | 103 | `OpIsQuotedMessage` | 判断当前消息是否为引用回复 |
 | 104 | `OpQuotedMessageContent` | 获取被引用消息的原内容 |
-
-`e.txt` 未定义操作码 102，因此 Go SDK 也不提供 102。
 
 ## 引用消息 API
 

@@ -123,6 +123,7 @@ const (
 	OpAtEveryone                             = 99
 	OpInlineCommandInput                     = 100
 	OpInlineCommandSend                      = 101
+	OpMentionedUserID                        = 102
 	OpIsQuotedMessage                        = 103
 	OpQuotedMessageContent                   = 104
 )
@@ -753,6 +754,11 @@ func (ctx *RobotContext) InlineCommand(label, command string) (string, error) {
 	return ctx.Call(OpInlineCommandSend, label, command)
 }
 
+// MentionedUserID 通过 Bee API 获取消息中的被艾特人 ID。
+func (ctx *RobotContext) MentionedUserID(content string) (string, error) {
+	return ctx.Call(OpMentionedUserID, content)
+}
+
 // IsQuotedMessage 判断指定机器人当前消息是否为引用回复。
 func (ctx *RobotContext) IsQuotedMessage(robotID string) (bool, error) {
 	return ctx.CallBool(OpIsQuotedMessage, robotID)
@@ -976,29 +982,6 @@ func (ctx *RobotContext) SendFriendButton(friendID, keyboardID string, active, r
 }
 
 // ==================== helpers.go ====================
-// MentionedUserID 从 QQBot 或旧版 <@!用户ID> 艾特代码中提取用户 ID。
-func MentionedUserID(text string) string {
-	const newPrefix = `<qqbot-at-userid="`
-	if start := strings.Index(text, newPrefix); start >= 0 {
-		rest := text[start+len(newPrefix):]
-		end := strings.IndexByte(rest, '"')
-		if end < 0 {
-			return ""
-		}
-		return rest[:end]
-	}
-	start := strings.Index(text, "<@!")
-	if start < 0 {
-		return ""
-	}
-	rest := text[start+3:]
-	end := strings.IndexByte(rest, '>')
-	if end < 0 {
-		return ""
-	}
-	return rest[:end]
-}
-
 // ImageDownloadURL 从 Bee 图片消息代码中提取下载地址。
 func ImageDownloadURL(message string) string {
 	start := strings.Index(message, ",url=")
@@ -1378,6 +1361,11 @@ func (api *BeeAPI) InlineCommand(label, command string) (string, error) {
 	return api.ctx.InlineCommand(label, command)
 }
 
+// MentionedUserID 通过当前 Bee 回调上下文获取消息中的被艾特人 ID。
+func (api *BeeAPI) MentionedUserID(content string) (string, error) {
+	return api.ctx.MentionedUserID(content)
+}
+
 // IsQuotedMessage 判断当前回调消息是否为指定机器人的引用回复。
 func (api *BeeAPI) IsQuotedMessage(robotID string) (bool, error) {
 	return api.ctx.IsQuotedMessage(robotID)
@@ -1535,16 +1523,20 @@ func (api *BeeAPI) EditCommandPanelTargets(panelID string, editType int, userIDs
 
 // ParseMention 判断消息是否艾特当前机器人，并返回移除艾特代码后的消息内容。
 func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
+	mentionedUserID, err := api.ctx.MentionedUserID(content)
+	if err != nil {
+		return false, content, err
+	}
 	robotID, err := api.ctx.GetRobotID()
 	if err != nil {
 		return false, content, err
 	}
-	for _, mention := range []string{`<qqbot-at-userid="` + robotID + `"/>`, "<@!" + robotID + ">"} {
-		if strings.Contains(content, mention) {
-			return true, strings.TrimSpace(strings.ReplaceAll(content, mention, "")), nil
-		}
+	if mentionedUserID != robotID {
+		return false, strings.TrimSpace(content), nil
 	}
-	return false, strings.TrimSpace(content), nil
+	cleaned := strings.ReplaceAll(content, `<qqbot-at-userid="`+robotID+`"/>`, "")
+	cleaned = strings.ReplaceAll(cleaned, "<@!"+robotID+">", "")
+	return true, strings.TrimSpace(cleaned), nil
 }
 
 // SendText 发送纯文本消息，默认使用当前消息进行被动回复。
@@ -1733,6 +1725,7 @@ var OpcodeNames = map[int]string{
 	93: "创建指令面板", 94: "修改指令面板", 95: "删除指令面板", 96: "编辑指令面板关联对象",
 	97: "取群内禁言信息Ex",
 	98: "艾特", 99: "艾特全体成员", 100: "嵌入指令_聊天框", 101: "嵌入指令_直接发送",
+	102: "取被艾特人ID",
 	103: "是否为引用消息回复", 104: "取被引用消息内容",
 }
 
