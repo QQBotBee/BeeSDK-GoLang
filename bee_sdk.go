@@ -126,6 +126,8 @@ const (
 	OpMentionedUserID                        = 102
 	OpIsQuotedMessage                        = 103
 	OpQuotedMessageContent                   = 104
+	OpTextImage                              = 105
+	OpGetGroupMessageSenderIdentity          = 106
 )
 
 // ==================== types.go ====================
@@ -769,6 +771,24 @@ func (ctx *RobotContext) QuotedMessageContent(robotID string) (string, error) {
 	return ctx.Call(OpQuotedMessageContent, robotID)
 }
 
+// TextImage 生成可用于消息内容的图片文本代码。
+func (ctx *RobotContext) TextImage(pathOrURL string) (string, error) {
+	return ctx.Call(OpTextImage, pathOrURL)
+}
+
+// GetGroupMessageSenderIdentity 返回群消息发送人身份：0 群成员，1 管理员，2 群主。
+func (ctx *RobotContext) GetGroupMessageSenderIdentity(robotID string) (int, error) {
+	out, err := ctx.Call(OpGetGroupMessageSenderIdentity, robotID)
+	if err != nil {
+		return 0, err
+	}
+	identity, err := strconv.Atoi(out)
+	if err != nil {
+		return 0, fmt.Errorf("解析群消息发送人身份: %w", err)
+	}
+	return identity, nil
+}
+
 // ==================== messages.go ====================
 func sendMessage(ctx *RobotContext, op int, target, content, media string, deleteMedia, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
@@ -1376,6 +1396,16 @@ func (api *BeeAPI) QuotedMessageContent(robotID string) (string, error) {
 	return api.ctx.QuotedMessageContent(robotID)
 }
 
+// TextImage 生成可用于消息内容的图片文本代码。
+func (api *BeeAPI) TextImage(pathOrURL string) (string, error) {
+	return api.ctx.TextImage(pathOrURL)
+}
+
+// GetGroupMessageSenderIdentity 返回群消息发送人身份：0 群成员，1 管理员，2 群主。
+func (api *BeeAPI) GetGroupMessageSenderIdentity(robotID string) (int, error) {
+	return api.ctx.GetGroupMessageSenderIdentity(robotID)
+}
+
 // IsGuildOwner 判断指定用户是否为频道主。
 func (api *BeeAPI) IsGuildOwner(guildID, userID string) (bool, error) {
 	return api.ctx.IsGuildOwner(guildID, userID)
@@ -1727,6 +1757,7 @@ var OpcodeNames = map[int]string{
 	98: "艾特", 99: "艾特全体成员", 100: "嵌入指令_聊天框", 101: "嵌入指令_直接发送",
 	102: "取被艾特人ID",
 	103: "是否为引用消息回复", 104: "取被引用消息内容",
+	105: "文本_图片", 106: "取群消息发送人身份",
 }
 
 // ==================== IPC transport ====================

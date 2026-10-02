@@ -75,11 +75,13 @@ everyone, _ := bee.AtEveryone()
 input, _ := bee.InlineCommandInputText("帮助", "/help")
 send, _ := bee.InlineCommand("发送", "/send")
 mentionedID, _ := bee.MentionedUserID(message)
+imageCode, _ := bee.TextImage("https://example.test/a.png")
+identity, _ := bee.GetGroupMessageSenderIdentity(robotID)
 ```
 
-`BeeAPI` 和 `RobotContext` 的同名方法分别调用 98、99、100、101、102、103、104 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 通过 102 号 API 从消息中获取被艾特人 ID。
+`BeeAPI` 和 `RobotContext` 的同名方法分别调用 98～106 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 通过 102 号 API 从消息中获取被艾特人 ID；`TextImage` 通过 105 号 API 生成图片文本代码；`GetGroupMessageSenderIdentity` 通过 106 号 API 返回群消息发送人身份。
 
-## 1～104 操作码
+## 1～106 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -187,6 +189,17 @@ mentionedID, _ := bee.MentionedUserID(message)
 | 102 | `OpMentionedUserID` | 获取消息中的被艾特人 ID |
 | 103 | `OpIsQuotedMessage` | 判断当前消息是否为引用回复 |
 | 104 | `OpQuotedMessageContent` | 获取被引用消息的原内容 |
+| 105 | `OpTextImage` | 生成图片文本代码 |
+| 106 | `OpGetGroupMessageSenderIdentity` | 获取群消息发送人身份 |
+
+## 图片与群消息身份 API
+
+`BeeAPI` 和 `RobotContext` 均提供以下方法：
+
+| 方法 | 返回 | 说明 |
+|---|---|---|
+| `TextImage(pathOrURL string)` | `string` | 将本地图片路径或网络图片链接转换为可嵌入消息内容的图片文本代码 |
+| `GetGroupMessageSenderIdentity(robotID string)` | `int` | 返回 `0` 群成员、`1` 管理员、`2` 群主；框架返回非整数文本时返回错误 |
 
 ## 引用消息 API
 
