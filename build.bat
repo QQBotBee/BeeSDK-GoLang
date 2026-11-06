@@ -8,7 +8,17 @@ echo Bee Go 插件构建工具
 echo ========================================
 echo.
 
-where go >nul 2>nul || goto :missing_go
+set "REQUIRED_GO_VERSION=go1.20.14"
+set "BEE_GO_EXE="
+set "BEE_GO_VERSION="
+set "GOTOOLCHAIN=local"
+set "GOWORK=off"
+set "GOROOT="
+for /f "delims=" %%G in ('where go.exe 2^>nul') do if not defined BEE_GO_EXE set "BEE_GO_EXE=%%G"
+if not defined BEE_GO_EXE goto :missing_go
+for /f "tokens=3" %%V in ('call "%BEE_GO_EXE%" version 2^>nul') do set "BEE_GO_VERSION=%%V"
+if not "%BEE_GO_VERSION%"=="%REQUIRED_GO_VERSION%" goto :wrong_go
+echo 使用编译器：%BEE_GO_EXE% ^(%BEE_GO_VERSION%^)
 where zig >nul 2>nul || goto :missing_zig
 
 if exist temp rmdir /s /q temp
@@ -16,7 +26,7 @@ mkdir temp || goto :fail
 if not exist build mkdir build || goto :fail
 
 echo [1/4] 正在生成插件元数据...
-go run .\other\buildmeta plugin_main.go temp > temp\plugin_name.txt
+"%BEE_GO_EXE%" run .\other\buildmeta plugin_main.go temp > temp\plugin_name.txt
 if errorlevel 1 goto :fail
 set /p "PLUGIN_NAME=" < temp\plugin_name.txt
 if not defined PLUGIN_NAME goto :metadata_empty
@@ -31,10 +41,13 @@ echo [2/4] 正在编译 Windows 32 位 Go 工作进程...
 set GOOS=windows
 set GOARCH=386
 set CGO_ENABLED=0
-go build -buildvcs=false -trimpath -ldflags="-s -w" -o temp\bee_go_worker.exe .
+"%BEE_GO_EXE%" build -buildvcs=false -trimpath -ldflags="-s -w" -o temp\bee_go_worker.exe .
 set "BUILD_RESULT=%ERRORLEVEL%"
 del /q worker_runtime.go >nul 2>nul
 if not "%BUILD_RESULT%"=="0" goto :fail
+set "BEE_WORKER_GO_VERSION="
+for /f "tokens=2" %%V in ('call "%BEE_GO_EXE%" version temp\bee_go_worker.exe 2^>nul') do set "BEE_WORKER_GO_VERSION=%%V"
+if not "%BEE_WORKER_GO_VERSION%"=="%REQUIRED_GO_VERSION%" goto :wrong_worker_go
 
 echo [3/4] 正在编译内嵌工作进程资源...
 pushd temp
@@ -53,9 +66,23 @@ pause
 exit /b 0
 
 :missing_go
-echo 错误：未在 PATH 环境变量中找到 Go。
-echo 请从官方网站下载安装：https://go.dev/dl/
+echo 错误：未在 PATH 环境变量中找到 Go 1.20.14。
+goto :download_go
+
+:wrong_go
+echo 错误：本项目严格要求 Go 1.20.14，当前编译器版本为：%BEE_GO_VERSION%
+echo 当前编译器路径：%BEE_GO_EXE%
+goto :download_go
+
+:download_go
+echo 请从官方网站下载 Go 1.20.14：https://go.dev/dl/#go1.20.14
+echo 安装或解压后，将其 bin 目录放在 PATH 中其他 Go 版本之前，并重新打开 CMD。
+echo 可运行 where go.exe 和 go version 检查当前编译器。
 goto :error_exit
+
+:wrong_worker_go
+echo 错误：工作进程的实际 Go 版本不是 Go 1.20.14，已停止打包。
+goto :fail
 
 :missing_zig
 echo 错误：未在 PATH 环境变量中找到 Zig。

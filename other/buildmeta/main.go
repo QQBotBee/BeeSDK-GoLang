@@ -135,6 +135,7 @@ func materializeWorkerRuntime(projectDir string) error {
 	if err != nil {
 		return fmt.Errorf("read worker runtime: %w", err)
 	}
+	source = bytes.ReplaceAll(source, []byte("\r\n"), []byte("\n"))
 	const buildTag = "//go:build bee_worker_runtime\n\n"
 	if !bytes.HasPrefix(source, []byte(buildTag)) {
 		return errors.New("other/worker_runtime.go missing bee_worker_runtime build tag")

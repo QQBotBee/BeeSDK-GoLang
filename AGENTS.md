@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a Go 1.22 Bee plugin SDK/template for Windows. Primary plugin work happens in `plugin_main.go`, which defines plugin metadata, lifecycle hooks, and message handlers. `bee_sdk.go` contains the Bee API wrapper, event constants, and IPC client. `settings.go` contains the native Windows settings window. Low-level runtime and build support live in `other/`: the C Bee shell, export definition file, worker runtime, and build metadata generator. Project docs are in `docs/`; generated `build/` and `temp/` outputs should not be committed.
+This is a Go 1.20.14 Bee plugin SDK/template for Windows. Primary plugin work happens in `plugin_main.go`, which defines plugin metadata, lifecycle hooks, and message handlers. `bee_sdk.go` contains the Bee API wrapper, event constants, and IPC client. `settings.go` contains the native Windows settings window. Low-level runtime and build support live in `other/`: the C Bee shell, export definition file, worker runtime, and build metadata generator. Project docs are in `docs/`; generated `build/` and `temp/` outputs should not be committed.
 
 ## Build, Test, and Development Commands
 
@@ -11,7 +11,7 @@ This is a Go 1.22 Bee plugin SDK/template for Windows. Primary plugin work happe
 - `build.bat`: builds the Windows 32-bit plugin DLL using Go and Zig.
 - `build.bat MyPlugin.dll`: builds the DLL with an explicit output name.
 
-The build expects Windows CMD, Go in `PATH`, Zig in `PATH`, and produces `build\<plugin-name>.dll`.
+The build expects Windows CMD, exactly Go 1.20.14 as the first `go.exe` in `PATH`, Zig in `PATH`, and produces `build\<plugin-name>.dll`. Run Go tests and vet with Go 1.20.14 as well. Do not upgrade the release compiler: compatibility with Windows Server 2012 R2 requires this pinned toolchain. `go.mod` declares the language version; `build.bat` enforces the exact compiler version and verifies the built worker before embedding it.
 
 ## Coding Style & Naming Conventions
 

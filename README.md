@@ -6,7 +6,7 @@
 
 纯 C 插件壳 · 独立 Go Worker · 单 DLL 交付 · 支持安全卸载
 
-![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-1.20.14-00ADD8?logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Architecture-x86%20%2F%2032--bit-555555)
 ![Build](https://img.shields.io/badge/Build-Go%20%2B%20Zig-F7A41D?logo=zig&logoColor=white)
@@ -61,7 +61,7 @@ Bee Go Plugin SDK 是一套面向 **Bee 机器人框架**的 Go 插件开发模�
 | 环境/工具 | 要求 | 获取方式 |
 | --- | --- | --- |
 | Windows | Windows 10/11 | — |
-| Go | 1.22 或更高版本 | [官方下载](https://go.dev/dl/) |
+| Go | 严格使用 1.20.14 | [Go 1.20.14 官方下载](https://go.dev/dl/#go1.20.14) |
 | Zig | 已加入系统 `PATH` | [官方下载](https://ziglang.org/download/) |
 | Bee | 支持 32 位 stdcall 插件 | Bee 官方渠道 |
 
@@ -72,6 +72,10 @@ Bee Go Plugin SDK 是一套面向 **Bee 机器人框架**的 Go 插件开发模�
 - Zig
 
 无需安装 MinGW、Python、Node.js 或 PowerShell。
+
+为兼容 Windows Server 2012 R2，发布编译器固定为 **Go 1.20.14**。`build.bat` 检查 `PATH` 中第一个 `go.exe` 的版本；缺失、无法执行或版本不符时直接停止并提示下载，不会自动下载或切换版本。请将 Go 1.20.14 的 `bin` 目录放在其他 Go 版本之前。脚本禁用 Go 工具链自动切换和外部 Go workspace，清除继承的 `GOROOT`，并使用同一个 `go.exe` 生成元数据和编译 Worker；嵌入 DLL 前还会核对 Worker 的实际 Go 版本。`go.mod` 中的 `go 1.20` 仅声明语言版本，不能单独锁定编译器。
+
+Server 2012 R2 上的完整插件功能仍需在真实 Bee 环境中验证。
 
 ## 快速开始
 
@@ -403,7 +407,7 @@ C 壳等待 `event_result` 时仍会处理嵌套的 `api_call`，避免同步 SD
 
 ## 常见问题
 
-### 构建时提示找不到 Go 或 Zig
+### 构建时提示找不到 Go、Go 版本不符或找不到 Zig
 
 确认 `go.exe` 和 `zig.exe` 所在目录已经加入系统 `PATH`，重新打开 CMD 后执行：
 
@@ -411,6 +415,8 @@ C 壳等待 `event_result` 时仍会处理嵌套的 `api_call`，避免同步 SD
 go version
 zig version
 ```
+
+`go version` 必须显示 `go version go1.20.14 windows/amd64` 或 `go version go1.20.14 windows/386`。如版本不符，请从 [Go 1.20.14 官方下载页面](https://go.dev/dl/#go1.20.14) 获取与构建电脑架构对应的 Windows 安装包或 ZIP，并调整 `PATH`；可用 `where go.exe` 检查搜索顺序。测试和静态检查也应使用该版本运行 `go test ./...` 和 `go vet ./...`。
 
 ### 中文提示或插件名乱码
 
