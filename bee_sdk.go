@@ -128,6 +128,7 @@ const (
 	OpQuotedMessageContent                   = 104
 	OpTextImage                              = 105
 	OpGetGroupMessageSenderIdentity          = 106
+	OpKickGroupMembers                       = 107
 )
 
 // ==================== types.go ====================
@@ -654,6 +655,12 @@ func (ctx *RobotContext) IsGroupMuted(groupID string) (bool, error) {
 func (ctx *RobotContext) MuteGroupMembers(groupID, userIDs string, seconds int) error {
 	_, err := ctx.Call(OpMuteGroupMembers, groupID, userIDs, intText(seconds))
 	return err
+}
+
+// KickGroupMembers 将成员移出群聊；userIDs 用 # 分隔，单次最多 20 个。
+// blockUser 为 true 时不再接收这些成员的加群申请，通常传 false；成功返回空文本。
+func (ctx *RobotContext) KickGroupMembers(groupID, userIDs string, blockUser bool) (string, error) {
+	return ctx.Call(OpKickGroupMembers, groupID, userIDs, boolText(blockUser), "")
 }
 
 // IsGroupManagement 查询机器人是否为指定群的管理员或群主。
@@ -1476,6 +1483,12 @@ func (api *BeeAPI) MuteGroupMembers(groupID, userIDs string, seconds int) error 
 	return api.ctx.MuteGroupMembers(groupID, userIDs, seconds)
 }
 
+// KickGroupMembers 将成员移出群聊；userIDs 用 # 分隔，单次最多 20 个。
+// blockUser 为 true 时不再接收这些成员的加群申请，通常传 false；成功返回空文本。
+func (api *BeeAPI) KickGroupMembers(groupID, userIDs string, blockUser bool) (string, error) {
+	return api.ctx.KickGroupMembers(groupID, userIDs, blockUser)
+}
+
 // IsGroupManagement 查询机器人是否为指定群的管理员或群主。
 func (api *BeeAPI) IsGroupManagement(groupID string) (bool, error) {
 	return api.ctx.IsGroupManagement(groupID)
@@ -1758,6 +1771,7 @@ var OpcodeNames = map[int]string{
 	102: "取被艾特人ID",
 	103: "是否为引用消息回复", 104: "取被引用消息内容",
 	105: "文本_图片", 106: "取群消息发送人身份",
+	107: "踢出群成员",
 }
 
 // ==================== IPC transport ====================

@@ -81,7 +81,24 @@ identity, _ := bee.GetGroupMessageSenderIdentity(robotID)
 
 `BeeAPI` 和 `RobotContext` 的同名方法分别调用 98～106 号 Bee API。`InlineCommandInputText` 仅用于 Markdown 中嵌入聊天框输入指令，用户点击后会把指令填入输入框但不会自动发送；`InlineCommand` 会在点击后直接发送文字。`MentionedUserID` 通过 102 号 API 从消息中获取被艾特人 ID；`TextImage` 通过 105 号 API 生成图片文本代码；`GetGroupMessageSenderIdentity` 通过 106 号 API 返回群消息发送人身份。
 
-## 1～106 操作码
+## 踢出群成员
+
+`BeeAPI` 和 `RobotContext` 均提供 `KickGroupMembers(groupID, userIDs string, blockUser bool) (string, error)`，对应 107 号 API：
+
+```go
+result, err := bee.KickGroupMembers(groupID, "user-1#user-2", false)
+if err != nil {
+    // IPC 调用失败。
+    return
+}
+if result != "" {
+    // 处理框架返回的结果文本。
+}
+```
+
+`userIDs` 支持单个成员 ID 或用 `#` 分隔的多个 ID，单次最多 20 个。`blockUser` 传 `false` 对应易语言的默认值；传 `true` 表示不再接收这些成员的加群申请。成功返回空文本，框架结果文本及 IPC 错误分别通过两个返回值原样传递。
+
+## 1～107 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -191,6 +208,7 @@ identity, _ := bee.GetGroupMessageSenderIdentity(robotID)
 | 104 | `OpQuotedMessageContent` | 获取被引用消息的原内容 |
 | 105 | `OpTextImage` | 生成图片文本代码 |
 | 106 | `OpGetGroupMessageSenderIdentity` | 获取群消息发送人身份 |
+| 107 | `OpKickGroupMembers` | 踢出群成员，可选拉黑 |
 
 ## 图片与群消息身份 API
 
