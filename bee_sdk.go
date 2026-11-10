@@ -5,15 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
-	"time"
 	"unicode/utf16"
 
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -1021,29 +1018,6 @@ func ImageDownloadURL(message string) string {
 		return ""
 	}
 	return rest[:end]
-}
-
-// ResolveRedirect 请求网址并返回重定向后的地址。
-func ResolveRedirect(rawURL string) (string, error) {
-	client := &http.Client{Timeout: 15 * time.Second, CheckRedirect: func(req *http.Request, via []*http.Request) error { return http.ErrUseLastResponse }}
-	resp, err := client.Get(rawURL)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	location := resp.Header.Get("Location")
-	if location == "" {
-		return rawURL, nil
-	}
-	base, err := url.Parse(rawURL)
-	if err != nil {
-		return "", err
-	}
-	target, err := base.Parse(location)
-	if err != nil {
-		return "", err
-	}
-	return target.String(), nil
 }
 
 type keyboard struct {
