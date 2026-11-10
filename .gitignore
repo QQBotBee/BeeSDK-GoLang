@@ -3,6 +3,9 @@
 /temp/
 /worker_runtime.go
 
+# Pinned Go toolchain (go-legacy-win7) download cache
+/.toolchain/
+
 # Native and Go binaries
 *.dll
 *.exe

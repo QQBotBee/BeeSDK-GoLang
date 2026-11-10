@@ -1,3 +1,6 @@
 # build.bat 必须按二进制原样保存，防止 Git/GitHub 将 CRLF 转成 LF 后破坏 Windows CMD 解析。
 build.bat binary
+other/bee-go.bat binary
+other/go_env.bat binary
+other/go_toolchain.ps1 binary
 other/BeePlugin.def binary

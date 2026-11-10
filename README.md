@@ -6,7 +6,7 @@
 
 纯 C 插件壳 · 独立 Go Worker · 单 DLL 交付 · 支持安全卸载
 
-![Go](https://img.shields.io/badge/Go-1.20.14-00ADD8?logo=go&logoColor=white)
+![Go](https://img.shields.io/badge/Go-go--legacy--win7%201.27.3--1-00ADD8?logo=go&logoColor=white)
 ![Platform](https://img.shields.io/badge/Platform-Windows-0078D4?logo=windows&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Architecture-x86%20%2F%2032--bit-555555)
 ![Build](https://img.shields.io/badge/Build-Go%20%2B%20Zig-F7A41D?logo=zig&logoColor=white)
@@ -60,20 +60,27 @@ Bee Go Plugin SDK 是一套面向 **Bee 机器人框架**的 Go 插件开发模�
 
 | 环境/工具 | 要求 | 获取方式 |
 | --- | --- | --- |
-| Windows | Windows 10/11 | — |
-| Go | 严格使用 1.20.14 | [Go 1.20.14 官方下载](https://go.dev/dl/#go1.20.14) |
+| Windows | Windows 7 及以上 | — |
+| Go | 固定使用 go-legacy-win7 1.27.3-1（自动下载，无需安装） | [发布页](https://github.com/thongtech/go-legacy-win7/releases/tag/v1.27.3-1) |
 | Zig | 已加入系统 `PATH` | [官方下载](https://ziglang.org/download/) |
 | Bee | 支持 32 位 stdcall 插件 | Bee 官方渠道 |
 
 构建脚本仅依赖：
 
-- Windows CMD
-- Go
+- Windows CMD 和系统自带的 Windows PowerShell
 - Zig
 
-无需安装 MinGW、Python、Node.js 或 PowerShell。
+无需安装官方 Go、MinGW、Python 或 Node.js。
 
-为兼容 Windows Server 2012 R2，发布编译器固定为 **Go 1.20.14**。`build.bat` 检查 `PATH` 中第一个 `go.exe` 的版本；缺失、无法执行或版本不符时直接停止并提示下载，不会自动下载或切换版本。请将 Go 1.20.14 的 `bin` 目录放在其他 Go 版本之前。脚本禁用 Go 工具链自动切换和外部 Go workspace，清除继承的 `GOROOT`，并使用同一个 `go.exe` 生成元数据和编译 Worker；嵌入 DLL 前还会核对 Worker 的实际 Go 版本。`go.mod` 中的 `go 1.20` 仅声明语言版本，不能单独锁定编译器。
+为兼容 Windows 7/8/8.1 和 Windows Server 2012 R2，本项目不使用官方 Go，而是固定使用 [go-legacy-win7](https://github.com/thongtech/go-legacy-win7) **1.27.3-1**（基于 Go 1.27.3，保留旧版 Windows 支持的 fork）。工具链的获取和校验流程如下：
+
+- `other/go_env.bat` 是唯一的工具链入口。首次运行时，它从 GitHub Release 下载与构建电脑架构对应的 ZIP（amd64/386/arm64），按脚本中写死的 SHA-256 校验后解压到项目内的 `.toolchain\go-legacy-win7-1.27.3-1\go`。之后的构建直接复用这份工具链。
+- PATH 中已安装的任何 Go（包括官方 Go）都不会被使用。脚本会把 `GOROOT` 设为项目内工具链，设置 `GOTOOLCHAIN=local` 禁止自动切换到官方工具链，并设置 `GOWORK=off`。
+- fork 的 `go version` 输出与官方 Go 1.27.3 完全相同。因此嵌入 DLL 前，`build.bat` 除了核对 Worker 的 Go 版本，还会检查它的 PE 子系统版本：go-legacy-win7 写入 6.1（Windows 7），官方 Go 写入 10.0。不是 6.1 时停止打包。
+- 无法联网时，可手动下载对应的 `go-legacy-win7-1.27.3-1.windows_<架构>.zip` 放到 `.toolchain` 目录。脚本同样会先校验 SHA-256 再使用。
+- 需要重新安装时，删除 `.toolchain` 目录后重新运行即可。
+
+`go.mod` 声明 `go 1.27.3`，项目按 Go 1.27.3 的语言规则开发。`go` 指令只规定语言版本和最低编译器版本，不决定使用哪个编译器，所以仍要靠上述脚本固定使用 fork。不要在 `go.mod` 中添加 `toolchain` 行，否则可能触发下载官方工具链。
 
 Server 2012 R2 上的完整插件功能仍需在真实 Bee 环境中验证。
 
@@ -407,16 +414,21 @@ C 壳等待 `event_result` 时仍会处理嵌套的 `api_call`，避免同步 SD
 
 ## 常见问题
 
-### 构建时提示找不到 Go、Go 版本不符或找不到 Zig
+### 构建时提示工具链准备失败、Go 版本不符或找不到 Zig
 
-确认 `go.exe` 和 `zig.exe` 所在目录已经加入系统 `PATH`，重新打开 CMD 后执行：
+Go 工具链由脚本自动下载，不需要也不会使用 PATH 中的 Go。如果下载失败，请检查能否访问 GitHub。也可以按提示手动下载 ZIP 放到 `.toolchain` 目录。提示版本不符或 SHA-256 不匹配时，删除 `.toolchain` 目录后重试。
+
+日常的测试和静态检查也必须使用固定工具链。请通过 `other\bee-go.bat` 执行，用法与 `go` 命令相同。它会先切换到项目根目录，所以 `./...` 始终指整个项目：
 
 ```bat
-go version
-zig version
+other\bee-go.bat version
+other\bee-go.bat test ./...
+other\bee-go.bat vet ./...
 ```
 
-`go version` 必须显示 `go version go1.20.14 windows/amd64` 或 `go version go1.20.14 windows/386`。如版本不符，请从 [Go 1.20.14 官方下载页面](https://go.dev/dl/#go1.20.14) 获取与构建电脑架构对应的 Windows 安装包或 ZIP，并调整 `PATH`；可用 `where go.exe` 检查搜索顺序。测试和静态检查也应使用该版本运行 `go test ./...` 和 `go vet ./...`。
+`other\bee-go.bat version` 应显示 `go version go1.27.3 windows/<架构>`。使用 VS Code 等编辑器时，请把编辑器的 Go 路径（例如 VS Code 的 `go.goroot`）设置为项目内的 `.toolchain\go-legacy-win7-1.27.3-1\go`。
+
+Zig 需要自行安装并加入系统 `PATH`，重新打开 CMD 后可运行 `zig version` 检查。
 
 ### 中文提示或插件名乱码
 
