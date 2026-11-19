@@ -60,6 +60,7 @@ Bee框架根目录\plugin_data\插件名称
 
 - 分隔符：`%@#bee#@%`
 - 操作码 31、45、48 不携带 `plugin_id`；其余操作码自动携带。
+- 操作码 108～111 的命令末尾保留协议分隔符。
 - 机器人 JSON 中的 `api` 字段兼容字符串和数字两种形态。
 - 主动消息清空 `msg_id` 和 `event_id`。
 - 参数中不能包含协议分隔符。
@@ -98,7 +99,25 @@ if result != "" {
 
 `userIDs` 支持单个成员 ID 或用 `#` 分隔的多个 ID，单次最多 20 个。`blockUser` 传 `false` 对应易语言的默认值；传 `true` 表示不再接收这些成员的加群申请。成功返回空文本，框架结果文本及 IPC 错误分别通过两个返回值原样传递。
 
-## 1～107 操作码
+## 好友基本信息
+
+`BeeAPI` 和 `RobotContext` 均提供 `GetUserBasicInfo(userID string) (UserBasicInfo, error)`，对应 108 号 API。返回的 `UserBasicInfo` 包含昵称 `Nickname`、头像地址 `AvatarURL`、是否接收主动推送 `ReceivePush` 和跨应用用户标识 `UnionOpenID`。框架返回空数据或字段不足时，方法返回错误。
+
+## 发送 Markdown Ex
+
+`BeeAPI` 和 `RobotContext` 均提供以下方法。传入 Markdown 内容和可选的按钮 `keyboard` JSON，`keyboardJSON` 传 `""` 时不携带按钮。
+
+```go
+friendResult, err := bee.SendFriendMarkdownEx(friendID, content, keyboardJSON, false, false)
+groupResult, err := bee.SendGroupMarkdownEx(groupID, content, "", false)
+channelResult, err := bee.SendChannelMarkdownEx(channelID, content, "", true)
+```
+
+最后一个参数用于控制群或频道消息是否主动发送。好友接口末尾依次为 `active` 和 `recallInteraction`，分别控制主动发送与互动召回。`active` 为 `false` 时使用当前回调的 `msg_id` 和 `event_id`，为 `true` 时清空这两个字段。频道的被动发送需要相应权限。
+
+三个发送方法均返回框架的原始文本。发送成功时该文本为消息 ID，发送失败时为原因。IPC 调用失败通过 `error` 返回。
+
+## 1～111 操作码
 
 | 操作码 | Go 常量 | 功能 |
 |---:|---|---|
@@ -209,6 +228,10 @@ if result != "" {
 | 105 | `OpTextImage` | 生成图片文本代码 |
 | 106 | `OpGetGroupMessageSenderIdentity` | 获取群消息发送人身份 |
 | 107 | `OpKickGroupMembers` | 踢出群成员，可选拉黑 |
+| 108 | `OpGetUserBasicInfo` | 获取好友基本信息 |
+| 109 | `OpSendFriendMarkdownEx` | 发送好友 Markdown Ex，可使用互动召回 |
+| 110 | `OpSendGroupMarkdownEx` | 发送群 Markdown Ex |
+| 111 | `OpSendChannelMarkdownEx` | 发送频道 Markdown Ex |
 
 ## 图片与群消息身份 API
 

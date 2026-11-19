@@ -126,6 +126,10 @@ const (
 	OpTextImage                              = 105
 	OpGetGroupMessageSenderIdentity          = 106
 	OpKickGroupMembers                       = 107
+	OpGetUserBasicInfo                       = 108
+	OpSendFriendMarkdownEx                   = 109
+	OpSendGroupMarkdownEx                    = 110
+	OpSendChannelMarkdownEx                  = 111
 )
 
 // ==================== types.go ====================
@@ -271,6 +275,14 @@ type RobotInfo struct {
 	ID        string `json:"id"`
 	Name      string `json:"username"`
 	AvatarURL string `json:"avatar"`
+}
+
+// UserBasicInfo 表示指定好友的基本信息。
+type UserBasicInfo struct {
+	Nickname    string
+	AvatarURL   string
+	ReceivePush bool   // 是否接收主动推送。
+	UnionOpenID string // 跨应用关联用户的 OpenID。
 }
 
 // GroupBasicInfo 表示群聊基本信息。
@@ -530,6 +542,24 @@ func (ctx *RobotContext) GetQQNickname(qqOrUserID string) (string, error) {
 // GetUserNickname 获取 QQ 或用户 ID 对应的昵称，失败时框架返回空字符串。
 func (ctx *RobotContext) GetUserNickname(userIDOrQQ string) (string, error) {
 	return ctx.Call(OpGetQQNickname, userIDOrQQ)
+}
+
+// GetUserBasicInfo 获取指定好友的昵称、头像、主动推送状态和 UnionOpenID。
+func (ctx *RobotContext) GetUserBasicInfo(userID string) (UserBasicInfo, error) {
+	out, err := ctx.Call(OpGetUserBasicInfo, userID, "")
+	if err != nil {
+		return UserBasicInfo{}, err
+	}
+	fields := strings.Split(out, BeeSeparator)
+	if len(fields) < 4 {
+		return UserBasicInfo{}, errors.New("框架返回的用户基本信息不足 4 个字段")
+	}
+	return UserBasicInfo{
+		Nickname:    fields[0],
+		AvatarURL:   fields[1],
+		ReceivePush: fields[2] == "1" || fields[2] == "真",
+		UnionOpenID: fields[3],
+	}, nil
 }
 
 // UploadImage 封装对应的 Bee 框架 API；参数和返回值与方法签名一致。
@@ -995,6 +1025,33 @@ func (ctx *RobotContext) SendFriendMarkdown(friendID string, message MarkdownMes
 	return ctx.Call(OpSendFriendMarkdown, markdownArgs(ctx, friendID, message, active, &recallInteraction)...)
 }
 
+// SendFriendMarkdownEx 向好友发送 Markdown 内容。keyboardJSON 可为空。
+// active 为 true 时使用主动发送，recallInteraction 控制是否使用互动召回。
+// 框架返回消息 ID 或失败原因，Go 的 error 表示调用失败。
+func (ctx *RobotContext) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
+	messageID, eventID := activeIDs(ctx, active)
+	// 109 使用易语言到文本转换后的逻辑值。
+	recallText := "假"
+	if recallInteraction {
+		recallText = "真"
+	}
+	return ctx.Call(OpSendFriendMarkdownEx, friendID, content, keyboardJSON, messageID, eventID, recallText, "")
+}
+
+// SendGroupMarkdownEx 向群发送 Markdown 内容。keyboardJSON 可为空。
+// active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
+func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
+	messageID, eventID := activeIDs(ctx, active)
+	return ctx.Call(OpSendGroupMarkdownEx, groupID, content, keyboardJSON, messageID, eventID, "")
+}
+
+// SendChannelMarkdownEx 向子频道发送 Markdown 内容。keyboardJSON 可为空。
+// active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
+func (ctx *RobotContext) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
+	messageID, eventID := activeIDs(ctx, active)
+	return ctx.Call(OpSendChannelMarkdownEx, channelID, content, keyboardJSON, messageID, eventID, "")
+}
+
 // SendGroupButton 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
 func (ctx *RobotContext) SendGroupButton(groupID, keyboardID string, active bool) (string, error) {
 	return sendCard(ctx, OpSendGroupButton, groupID, []string{keyboardID}, active, nil)
@@ -1407,6 +1464,26 @@ func (api *BeeAPI) GetUserNickname(userIDOrQQ string) (string, error) {
 	return api.ctx.GetUserNickname(userIDOrQQ)
 }
 
+// GetUserBasicInfo 获取指定好友的基本信息。
+func (api *BeeAPI) GetUserBasicInfo(userID string) (UserBasicInfo, error) {
+	return api.ctx.GetUserBasicInfo(userID)
+}
+
+// SendFriendMarkdownEx 向好友发送 Markdown 内容，可携带按钮或使用互动召回。
+func (api *BeeAPI) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
+	return api.ctx.SendFriendMarkdownEx(friendID, content, keyboardJSON, active, recallInteraction)
+}
+
+// SendGroupMarkdownEx 向群发送 Markdown 内容，可携带按钮。
+func (api *BeeAPI) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
+	return api.ctx.SendGroupMarkdownEx(groupID, content, keyboardJSON, active)
+}
+
+// SendChannelMarkdownEx 向子频道发送 Markdown 内容，可携带按钮。
+func (api *BeeAPI) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
+	return api.ctx.SendChannelMarkdownEx(channelID, content, keyboardJSON, active)
+}
+
 // GetRobotShareLink 返回机器人分享链接，用于邀请用户添加机器人为好友。
 func (api *BeeAPI) GetRobotShareLink() (string, error) {
 	return api.ctx.GetRobotShareLink()
@@ -1746,6 +1823,8 @@ var OpcodeNames = map[int]string{
 	103: "是否为引用消息回复", 104: "取被引用消息内容",
 	105: "文本_图片", 106: "取群消息发送人身份",
 	107: "踢出群成员",
+	108: "取用户基本信息", 109: "发送好友Markdown消息Ex",
+	110: "发送群Markdown消息Ex", 111: "发送频道Markdown消息Ex",
 }
 
 // ==================== IPC transport ====================
