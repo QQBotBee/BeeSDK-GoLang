@@ -18,6 +18,16 @@ _, _ = bee.ChannelDM(guildID).SendText("频道私信")
 
 `BeeAPI` 包含当前回调的 `plugin_id`、`msg_id` 和 `event_id`，禁止全局缓存后跨消息使用。
 
+## 群消息私聊回复
+
+在 `onGroupMessage` 中，发送者与机器人为好友时，可以用本次回调的 `robotJSON` 创建 `BeeAPI`，以发送者的 `userID` 为目标发送好友消息。
+
+```go
+_, _ = bee.Friend(userID).SendText("收到")
+```
+
+`SendText` 使用本次群消息上下文中的 `msg_id` 和 `event_id` 进行被动回复。直接调用 `RobotContext.SendFriendMessage`（52 号 API）时，将 `friendID` 设为发送者的 `userID`，并将 `active` 设为 `false`。
+
 ## 初始化协议
 
 Go SDK 提供与易语言 SDK 初始化段对齐的类型和函数：

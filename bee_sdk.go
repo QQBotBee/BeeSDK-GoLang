@@ -903,7 +903,9 @@ func (ctx *RobotContext) SendGroupMessage(groupID, content, image string, delete
 	return sendMessage(ctx, OpSendGroupMessage, groupID, content, image, deleteImage, active, nil)
 }
 
-// SendFriendMessage 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// SendFriendMessage 发送好友消息。active 为 true 时使用主动消息模式。
+// 在群消息回调中，使用本次回调的上下文，把 friendID 设为发送者的 userID，
+// 并将 active 设为 false，即可被动私聊回复。发送者须与机器人为好友。
 func (ctx *RobotContext) SendFriendMessage(friendID, content, image string, deleteImage, active, recallInteraction bool) (string, error) {
 	return sendMessage(ctx, OpSendFriendMessage, friendID, content, image, deleteImage, active, &recallInteraction)
 }
@@ -1647,6 +1649,7 @@ func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
 }
 
 // SendText 发送纯文本消息，默认使用当前消息进行被动回复。
+// 在群消息回调中可调用 bee.Friend(userID).SendText 私聊回复发送者。发送者须与机器人为好友。
 // 框架返回的正文应原样传给 content，保留其中的 \uXXXX。
 func (target *MessageTarget) SendText(content string) (string, error) {
 	switch target.kind {
