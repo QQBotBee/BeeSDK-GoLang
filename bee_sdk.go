@@ -349,6 +349,7 @@ type GroupAutoApprovalStrategy struct {
 type MarkdownParam struct{ Key, Value string }
 
 // MarkdownMessage 表示原生或模板 Markdown 消息参数。
+// Native 和 Params 中来自 Bee 的文本应保留已有的 \uXXXX。
 type MarkdownMessage struct {
 	Native        string
 	TemplateIndex int
@@ -824,6 +825,7 @@ func (ctx *RobotContext) GetGroupMessageSenderIdentity(robotID string) (int, err
 }
 
 // ==================== messages.go ====================
+// sendMessage 将 content 原样交给 Call，保留框架文本中已有的 \uXXXX。
 func sendMessage(ctx *RobotContext, op int, target, content, media string, deleteMedia, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	args := []string{target, content, media, boolText(deleteMedia), messageID, eventID}
@@ -842,6 +844,7 @@ func sendMedia(ctx *RobotContext, op int, target, file string, deleteFile, activ
 	return ctx.Call(op, args...)
 }
 
+// sendReply 保留引用回复正文中已有的 \uXXXX，由 Bee 在处理消息时解析。
 func sendReply(ctx *RobotContext, op int, target, quotedMessageID, content, image string, deleteImage, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	args := []string{target, quotedMessageID, content, image, boolText(deleteImage), messageID, eventID}
@@ -851,6 +854,7 @@ func sendReply(ctx *RobotContext, op int, target, quotedMessageID, content, imag
 	return ctx.Call(op, args...)
 }
 
+// sendCard 保留卡片标题、预览和正文中已有的 \uXXXX。
 func sendCard(ctx *RobotContext, op int, target string, fields []string, active bool, recallInteraction *bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	args := append([]string{target}, fields...)
@@ -861,6 +865,7 @@ func sendCard(ctx *RobotContext, op int, target string, fields []string, active 
 	return ctx.Call(op, args...)
 }
 
+// markdownArgs 保留 Markdown 正文、模板参数及按钮 JSON 中已有的转义。
 func markdownArgs(ctx *RobotContext, target string, message MarkdownMessage, active bool, recallInteraction *bool) []string {
 	args := []string{target, message.Native, intText(message.TemplateIndex), message.TemplateID}
 	for i := 0; i < 10; i++ {
@@ -939,6 +944,7 @@ func (ctx *RobotContext) SendFriendFile(friendID, file string, deleteFile, activ
 }
 
 // SendChannelReply 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// 转发框架文本时，content 应保留其中的 \uXXXX。
 func (ctx *RobotContext) SendChannelReply(channelID, quotedMessageID, content, image string, active bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	return ctx.Call(OpSendChannelReply, channelID, quotedMessageID, content, image, messageID, eventID)
@@ -955,6 +961,7 @@ func (ctx *RobotContext) SendFriendReply(friendID, quotedMessageID, content, ima
 }
 
 // SendChannelCustom 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// 转发已有的消息 JSON 时，保留原 JSON 及其中的转义。
 func (ctx *RobotContext) SendChannelCustom(channelID, rawJSON string, active bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	return ctx.Call(OpSendChannelCustom, channelID, rawJSON, messageID, eventID)
@@ -1026,6 +1033,7 @@ func (ctx *RobotContext) SendFriendMarkdown(friendID string, message MarkdownMes
 }
 
 // SendFriendMarkdownEx 向好友发送 Markdown 内容。keyboardJSON 可为空。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送，recallInteraction 控制是否使用互动召回。
 // 框架返回消息 ID 或失败原因，Go 的 error 表示调用失败。
 func (ctx *RobotContext) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
@@ -1039,6 +1047,7 @@ func (ctx *RobotContext) SendFriendMarkdownEx(friendID, content, keyboardJSON st
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容。keyboardJSON 可为空。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
 func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
@@ -1046,6 +1055,7 @@ func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON stri
 }
 
 // SendChannelMarkdownEx 向子频道发送 Markdown 内容。keyboardJSON 可为空。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
 func (ctx *RobotContext) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
@@ -1081,7 +1091,7 @@ type keyboard struct {
 	Content keyboardContent `json:"content"`
 }
 type keyboardContent struct {
-	BotAppID string        `json:"bot_appid"`
+	BotAppID string        `json:"bot_appid,omitempty"`
 	Rows     []keyboardRow `json:"rows"`
 }
 type keyboardRow struct {
@@ -1114,11 +1124,9 @@ type keyboardPermission struct {
 	SpecifyRoleIDs []string `json:"specify_role_ids,omitempty"`
 }
 
-// BuildKeyboard 使用传入的机器人 AppID，避免原 SDK 将 AppID 固定为 102069021。
+// BuildKeyboard 生成 Markdown 按钮 JSON。botAppID 为空时省略 bot_appid 字段。
+// 按钮文案和数据中已有的 \uXXXX 应原样传入，JSON 转义由此函数处理。
 func BuildKeyboard(botAppID string, rows [][]Button) (string, error) {
-	if botAppID == "" {
-		return "", errors.New("botAppID 不能为空")
-	}
 	if len(rows) > 5 {
 		return "", errors.New("按钮最多 5 行")
 	}
@@ -1242,6 +1250,7 @@ func resetBeePluginInitializationForTest() {
 }
 
 // RobotContext 保存框架随事件传入的机器人上下文。
+// 发送框架返回的文本时保留其中已有的 \uXXXX。详见 [RobotContext.Call]。
 type RobotContext struct {
 	APIText   string          `json:"api"`
 	transport APITransport    `json:"-"`
@@ -1319,6 +1328,7 @@ type BeeAPI struct {
 }
 
 // MessageTarget 是已经绑定消息目标的快捷发送器。
+// 转发框架文本时，正文和卡片文案中的 \uXXXX 都应原样传入。
 type MessageTarget struct {
 	ctx      *RobotContext
 	targetID string
@@ -1470,16 +1480,19 @@ func (api *BeeAPI) GetUserBasicInfo(userID string) (UserBasicInfo, error) {
 }
 
 // SendFriendMarkdownEx 向好友发送 Markdown 内容，可携带按钮或使用互动召回。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
 	return api.ctx.SendFriendMarkdownEx(friendID, content, keyboardJSON, active, recallInteraction)
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容，可携带按钮。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
 	return api.ctx.SendGroupMarkdownEx(groupID, content, keyboardJSON, active)
 }
 
 // SendChannelMarkdownEx 向子频道发送 Markdown 内容，可携带按钮。
+// 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
 	return api.ctx.SendChannelMarkdownEx(channelID, content, keyboardJSON, active)
 }
@@ -1634,6 +1647,7 @@ func (api *BeeAPI) ParseMention(content string) (bool, string, error) {
 }
 
 // SendText 发送纯文本消息，默认使用当前消息进行被动回复。
+// 框架返回的正文应原样传给 content，保留其中的 \uXXXX。
 func (target *MessageTarget) SendText(content string) (string, error) {
 	switch target.kind {
 	case targetFriend:
@@ -1648,6 +1662,7 @@ func (target *MessageTarget) SendText(content string) (string, error) {
 }
 
 // SendImage 发送图片消息，可同时携带文字。
+// 框架返回的文字应原样传给 content，保留其中的 \uXXXX。
 func (target *MessageTarget) SendImage(content, image string) (string, error) {
 	switch target.kind {
 	case targetFriend:
@@ -1662,6 +1677,7 @@ func (target *MessageTarget) SendImage(content, image string) (string, error) {
 }
 
 // SendActiveText 主动发送纯文本消息；主动消息受平台频率和次数限制。
+// 框架返回的正文应原样传给 content，保留其中的 \uXXXX。
 func (target *MessageTarget) SendActiveText(content string) (string, error) {
 	switch target.kind {
 	case targetFriend:
@@ -1681,6 +1697,7 @@ func (target *MessageTarget) SendTextCard(title, preview, content, imageURL stri
 }
 
 // SendCustom 发送频道自定义 JSON 消息；仅用于 Channel 目标。
+// 转发已有的消息 JSON 时，保留原 JSON 及其中的转义。
 func (target *MessageTarget) SendCustom(rawJSON string) (string, error) {
 	return target.ctx.SendChannelCustom(target.targetID, rawJSON, false)
 }
@@ -1691,6 +1708,7 @@ func (target *MessageTarget) SendLargeCard(title, subtitle, preview, imageURL, j
 }
 
 // Reply 发送引用消息，按当前目标自动选择频道、群或好友引用接口。
+// 框架返回的正文应原样传给 content，保留其中的 \uXXXX。
 func (target *MessageTarget) Reply(messageID, content, image string) (string, error) {
 	switch target.kind {
 	case targetFriend:
@@ -1739,6 +1757,7 @@ func (ctx *RobotContext) command(op int, args ...string) string {
 	return strings.Join(fields, BeeSeparator)
 }
 
+// encodeFrameworkText 为 GBK 无法表示的字符生成 UTF-16 转义，保留已有的字面 \uXXXX。
 func encodeFrameworkText(value string) string {
 	var out strings.Builder
 	for _, r := range value {
@@ -1758,10 +1777,12 @@ func encodeFrameworkText(value string) string {
 	return out.String()
 }
 
-// Call 按 Bee 协议拼接命令，调用机器人上下文中的 32 位 stdcall 框架函数。
-// 所有传给框架的内容会先把 GBK 无法表示的 Unicode 字符编码为 UTF-16 \uXXXX；
-// 例如“哈哈😄”会转换为“哈哈\uD83D\uDE04”，再将整条命令转为 GBK。
-// 返回值按 GBK解码为 UTF-8；返回内存归框架所有。
+// Call 按 Bee 协议拼接命令，通过 C 壳调用机器人上下文中的 32 位 stdcall 框架函数。
+// SDK 将 GBK 无法表示的字符编码为 UTF-16 \uXXXX，例如“哈哈😄”变为“哈哈\uD83D\uDE04”。
+// C 壳再将整条命令转为 GBK。返回值由 GBK 转为 UTF-8，返回内存归框架所有。
+//
+// 转发框架返回的混合文本（如 \uD83D\uDE04你好）时，原样传入内容。
+// Bee 会在处理消息时解析已有的 \uXXXX，手动反转义或增加反斜杠可能导致乱码。
 func (ctx *RobotContext) Call(op int, args ...string) (string, error) {
 	if ctx == nil || ctx.transport == nil {
 		return "", errors.New("无有效 Bee API IPC transport")

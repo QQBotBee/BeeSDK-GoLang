@@ -66,7 +66,8 @@ Bee框架根目录\plugin_data\插件名称
 - 参数中不能包含协议分隔符。
 - C 壳在 Bee 进程内调用 `robot.api`；Go worker 不直接使用函数地址。
 - Bee 入站 GBK 参数由 C 壳 Base64 封装，worker 解码为 UTF-8。
-- Go 出站 UTF-8 命令由 C 壳转换为 GBK；GBK 不可表示字符由 SDK编码为 UTF-16 `\uXXXX`。
+- SDK 将 GBK 无法表示的字符编码为 UTF-16 `\uXXXX`，再由 C 壳将出站命令转为 GBK。
+- 再次发送 Bee 返回的文本时，原样保留其中已有的 `\uXXXX`，例如 `\uD83D\uDE04你好`。Bee 会在处理消息时解析这些序列，手动反转义或增加反斜杠可能导致乱码。 [转发框架文本](AI开发指南.md#转发框架文本)
 
 ## Markdown 辅助函数
 
@@ -106,6 +107,8 @@ if result != "" {
 ## 发送 Markdown Ex
 
 `BeeAPI` 和 `RobotContext` 均提供以下方法。传入 Markdown 内容和可选的按钮 `keyboard` JSON，`keyboardJSON` 传 `""` 时不携带按钮。
+
+生成按钮 JSON 时，机器人 AppID 可选。调用 `BuildKeyboard("", rows)` 会在生成的 JSON 中省略 `content.bot_appid`。
 
 ```go
 friendResult, err := bee.SendFriendMarkdownEx(friendID, content, keyboardJSON, false, false)

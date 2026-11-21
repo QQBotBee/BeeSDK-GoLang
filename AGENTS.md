@@ -17,6 +17,10 @@ The build expects Windows CMD, Windows PowerShell, and Zig in `PATH`, and produc
 
 Use standard Go formatting: run `gofmt` on changed `.go` files and keep package-level names clear and idiomatic. Keep business logic in `plugin_main.go` unless it becomes large enough to justify a focused helper file. Use descriptive handler names that match Bee callback concepts, such as `onGroupMessage` or `onSettings`. Preserve Windows/386 assumptions and do not move Go runtime code into the Bee DLL.
 
+## Forwarding Bee Text
+
+Pass text received from Bee directly to the send API. Preserve literal `\uXXXX` sequences in mixed text such as `\uD83D\uDE04你好`. Bee interprets them during message processing. Manually unescaping those sequences or adding backslashes can produce garbled text. Use the normal JSON serializer when building structured payloads. [AI development guide](docs/AI开发指南.md#转发框架文本)
+
 ## Testing Guidelines
 
 Add tests as `*_test.go` files next to the code under test. Prefer table-driven tests for parsing, message handling helpers, and SDK behavior. `other\bee-go.bat test ./...` should pass before every PR. Full plugin lifecycle, message callbacks, settings windows, worker shutdown, and DLL unload stability still require verification in a real Bee environment.

@@ -276,6 +276,9 @@ func onGroupMessage(
 	// 示例：向消息来源群聊发送消息。
 	// _, _ = bee.Group(groupID).SendText("大家好")
 	//
+	// 转发收到的正文时，直接传入 message，保留其中的 \uXXXX 供 Bee 解析。
+	// _, _ = bee.Group(groupID).SendText(message)
+	//
 	// 这些具名参数可直接用于业务判断、回复、引用或撤回操作。
 	_, _, _, _ = groupID, userID, message, messageID
 
