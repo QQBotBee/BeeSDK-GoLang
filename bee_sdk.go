@@ -362,20 +362,33 @@ type MarkdownMessage struct {
 
 // Button 表示 Markdown 自定义键盘中的一个按钮。
 type Button struct {
-	Label                string
-	VisitedLabel         string
-	Style                int
-	Type                 int
-	Permission           int
-	UserIDs              []string
-	RoleIDs              []string
-	Data                 string
-	Reply                bool
-	Enter                bool
-	Anchor               int
+	// ID 为空时，BuildKeyboard 按行列位置生成按钮 ID。
+	ID string
+	// GroupID 仅对 Type 为 1 的回调按钮生效。
+	GroupID      string
+	Label        string
+	VisitedLabel string
+	Style        int
+	Type         int
+	Permission   int
+	UserIDs      []string
+	RoleIDs      []string
+	Data         string
+	Reply        bool
+	Enter        bool
+	Anchor       int
+	// Deprecated: QQ 已废弃 click_limit 字段。
 	ClickLimit           int
 	AtBotShowChannelList bool
 	UnsupportTips        string
+	Modal                *ButtonModal
+}
+
+// ButtonModal 配置点击按钮后的二次确认。Content 非空时启用确认。
+type ButtonModal struct {
+	Content     string `json:"content,omitempty"`
+	ConfirmText string `json:"confirm_text,omitempty"`
+	CancelText  string `json:"cancel_text,omitempty"`
 }
 
 // ==================== api.go ====================
@@ -1110,10 +1123,11 @@ type keyboardButton struct {
 	ID         string         `json:"id"`
 	RenderData keyboardRender `json:"render_data"`
 	Action     keyboardAction `json:"action"`
+	GroupID    string         `json:"group_id,omitempty"`
 }
 type keyboardRender struct {
 	Label        string `json:"label"`
-	VisitedLabel string `json:"visited_label"`
+	VisitedLabel string `json:"visited_label,omitempty"`
 	Style        int    `json:"style"`
 }
 type keyboardAction struct {
@@ -1126,6 +1140,7 @@ type keyboardAction struct {
 	ClickLimit           int                `json:"click_limit,omitempty"`
 	AtBotShowChannelList bool               `json:"at_bot_show_channel_list,omitempty"`
 	UnsupportTips        string             `json:"unsupport_tips,omitempty"`
+	Modal                *ButtonModal       `json:"modal,omitempty"`
 }
 type keyboardPermission struct {
 	Type           int      `json:"type"`
@@ -1140,27 +1155,33 @@ func BuildKeyboard(botAppID string, rows [][]Button) (string, error) {
 		return "", errors.New("按钮最多 5 行")
 	}
 	result := keyboard{Content: keyboardContent{BotAppID: botAppID}}
+	usedIDs := make(map[string]struct{})
 	for rowIndex, row := range rows {
 		if len(row) > 10 {
 			return "", fmt.Errorf("第 %d 行按钮超过 10 个", rowIndex+1)
 		}
 		outRow := keyboardRow{}
 		for columnIndex, button := range row {
+			id := button.ID
+			if id == "" {
+				id = fmt.Sprintf("%d_%d", rowIndex, columnIndex)
+			}
+			if _, exists := usedIDs[id]; exists {
+				return "", fmt.Errorf("按钮 ID %q 重复", id)
+			}
+			usedIDs[id] = struct{}{}
 			label := button.Label
 			if label == "" {
 				label = "按钮"
-			}
-			visited := button.VisitedLabel
-			if visited == "" {
-				visited = "按钮"
 			}
 			data := button.Data
 			if data == "" {
 				data = "你好"
 			}
 			outRow.Buttons = append(outRow.Buttons, keyboardButton{
-				ID:         fmt.Sprintf("%d_%d", rowIndex, columnIndex),
-				RenderData: keyboardRender{Label: label, VisitedLabel: visited, Style: button.Style},
+				ID:         id,
+				GroupID:    button.GroupID,
+				RenderData: keyboardRender{Label: label, VisitedLabel: button.VisitedLabel, Style: button.Style},
 				Action: keyboardAction{
 					Type:                 button.Type,
 					Permission:           keyboardPermission{Type: button.Permission, SpecifyUserIDs: button.UserIDs, SpecifyRoleIDs: button.RoleIDs},
@@ -1171,6 +1192,7 @@ func BuildKeyboard(botAppID string, rows [][]Button) (string, error) {
 					ClickLimit:           button.ClickLimit,
 					AtBotShowChannelList: button.AtBotShowChannelList,
 					UnsupportTips:        button.UnsupportTips,
+					Modal:                button.Modal,
 				},
 			})
 		}

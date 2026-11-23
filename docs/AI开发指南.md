@@ -73,6 +73,8 @@ _, _ = bee.Group(groupID).SendText(message)
 
 如果回调载荷是 JSON，按 JSON 结构读取字段后，保留字段值中仍然存在的 `\uXXXX`。构造按钮 JSON 时使用 `BuildKeyboard`，构造自定义消息 JSON 时可使用 `json.Marshal`。把原始字段值直接交给序列化函数，由它处理 JSON 语法所需的转义。
 
+`BuildKeyboard("", rows)` 生成省略 `bot_appid` 的按钮 JSON。回调分组用 `Button.GroupID`，二次确认用 `Button.Modal`。 [Markdown 按钮 JSON](API参考.md#markdown-按钮-json)
+
 ## IPC 纪律
 
 1. worker stdout 只能输出 JSON Lines IPC，日志写 stderr 或插件数据目录。

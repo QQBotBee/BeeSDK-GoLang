@@ -120,7 +120,7 @@ if result != "" {
 
 在 `content` 中用 `![#宽px #高px](图片地址)` 指定图片的显示宽高。宽在前、高在后，中间用一个空格分隔，单位为 `px`。调用 `RobotContext` 的 `SendFriendMarkdown`、`SendGroupMarkdown` 或 `SendChannelMarkdown` 时，同样可在 `MarkdownMessage.Native` 中使用此语法。
 
-生成按钮 JSON 时，机器人 AppID 可选。调用 `BuildKeyboard("", rows)` 会在生成的 JSON 中省略 `content.bot_appid`。
+自定义键盘可用 `BuildKeyboard` 生成，返回的 JSON 可直接传给 `keyboardJSON`。 [Markdown 按钮 JSON](#markdown-按钮-json)
 
 ```go
 content := "![#320px #180px](" + imageURL + ")"
@@ -132,6 +132,86 @@ channelResult, err := bee.SendChannelMarkdownEx(channelID, content, "", true)
 最后一个参数用于控制群或频道消息是否主动发送。好友接口末尾依次为 `active` 和 `recallInteraction`，分别控制主动发送与互动召回。`active` 为 `false` 时使用当前回调的 `msg_id` 和 `event_id`，为 `true` 时清空这两个字段。频道的被动发送需要相应权限。
 
 三个发送方法均返回框架的原始文本。发送成功时该文本为消息 ID，发送失败时为原因。IPC 调用失败通过 `error` 返回。
+
+## Markdown 按钮 JSON
+
+`BuildKeyboard(botAppID, rows)` 接收 `[][]Button`，将按钮放在 `content.rows[].buttons[]`。机器人 AppID 可选。传 `""` 时省略 `content.bot_appid`，传入非空 AppID 时输出该字段。生成的 JSON 可传给 `Send*MarkdownEx` 的 `keyboardJSON`，也可填入 `MarkdownMessage.KeyboardJSON`。
+
+```go
+keyboardJSON, err := BuildKeyboard("", [][]Button{{
+    {
+        ID:         "approve",
+        GroupID:    "review",
+        Label:      "通过",
+        Style:      4,
+        Type:       1,
+        Permission: 2,
+        Data:       "approve",
+        Modal:      &ButtonModal{Content: "确认通过？"},
+    },
+    {
+        ID:         "reject",
+        GroupID:    "review",
+        Label:      "驳回",
+        Style:      3,
+        Type:       1,
+        Permission: 2,
+        Data:       "reject",
+        Modal:      &ButtonModal{Content: "确认驳回？", ConfirmText: "驳回", CancelText: "返回"},
+    },
+}})
+```
+
+`ID` 留空时，`BuildKeyboard` 按从 0 开始的行号和列号生成按钮 ID，例如 `0_0`。同一键盘内出现重复按钮 ID 时返回错误。`Label` 和 `Data` 留空时分别使用 `按钮` 和 `你好`。`VisitedLabel` 留空时省略 `visited_label`。
+
+下面的字段均可省略。回调和指令按钮需要提供 `action.data`。 [QQ 机器人键盘字段定义](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_messages.post.html#schema-button)
+
+### Button
+
+| JSON 字段 | 类型 | 说明 |
+|---|---|---|
+| `id` | `string` | 按钮 ID，在同一键盘内唯一。 |
+| `render_data` | `RenderData` | 按钮的文字和样式。 |
+| `action` | `Action` | 点击按钮时执行的动作。 |
+| `group_id` | `string` | 仅对 `action.type = 1` 的回调按钮生效。操作一个按钮后，同组其余按钮变灰并禁用。 |
+
+### RenderData
+
+| JSON 字段 | 类型 | 说明 |
+|---|---|---|
+| `label` | `string` | 按钮文字，最多 10 个字符。 |
+| `visited_label` | `string` | 点击后显示的文字。省略时保持原按钮文字。 |
+| `style` | `integer` | `0` 为灰色线框，`1` 为蓝色线框，`3` 为白底红字，`4` 为蓝底白字。 |
+
+### Action
+
+| JSON 字段 | 类型 | 说明 |
+|---|---|---|
+| `type` | `integer` | `0` 跳转网页或小程序，`1` 回调后台并传递 `data`，`2` 将 `@bot data` 填入输入框。 |
+| `permission` | `Permission` | 点击按钮所需的权限。 |
+| `data` | `string` | `type` 为 `1` 或 `2` 时必填，分别为回调数据或指令内容。 |
+| `click_limit` | `integer` | 已废弃。原义为点击次数上限，`0` 表示不限次数。 |
+| `unsupport_tips` | `string` | 客户端版本过低时显示的提示。 |
+| `enter` | `boolean` | 单聊中的指令按钮可用。设为 `true` 时点击即发送 `data`，默认 `false`。从版本 `8983` 起支持。 |
+| `reply` | `boolean` | 指令按钮可用。设为 `true` 时指令带上对这条消息的引用，默认 `false`。从版本 `8983` 起支持。 |
+| `anchor` | `integer` | 仅适用于指令按钮，设置后忽略 `enter`。在版本 `8983` 及以上的手机 QQ 单聊中，`1` 唤起选图器。其他值暂无效果，桌面端不支持。 |
+| `modal` | `Modal` | 点击后显示的二次确认弹窗，对应 `Button.Modal`。 |
+
+### Permission
+
+| JSON 字段 | 类型 | 说明 |
+|---|---|---|
+| `type` | `integer` | `0` 为指定用户，`1` 为管理员，`2` 为所有人。 |
+| `specify_user_ids` | `[]string` | 有权限的用户 ID 列表。 |
+| `specify_role_ids` | `[]string` | 有权限的身份组 ID 列表，仅在频道可用。 |
+
+### Modal
+
+| JSON 字段 | 类型 | 说明 |
+|---|---|---|
+| `content` | `string` | 非空时触发二次确认。提示最多 40 个字符，且不能包含 URL。 |
+| `confirm_text` | `string` | 确认按钮文字，最多 4 个字符。留空时使用“确认”。 |
+| `cancel_text` | `string` | 取消按钮文字，最多 4 个字符。留空时使用“取消”。 |
 
 ## 1～111 操作码
 
