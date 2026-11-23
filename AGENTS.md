@@ -21,6 +21,10 @@ Use standard Go formatting: run `gofmt` on changed `.go` files and keep package-
 
 Pass text received from Bee directly to the send API. Preserve literal `\uXXXX` sequences in mixed text such as `\uD83D\uDE04你好`. Bee interprets them during message processing. Manually unescaping those sequences or adding backslashes can produce garbled text. Use the normal JSON serializer when building structured payloads. [AI development guide](docs/AI开发指南.md#转发框架文本)
 
+## Bee Markdown Image Dimensions
+
+When generating Bee Markdown, use `![#宽px #高px](图片地址)` to set an image's display size. Put the width first and the height second, separated by one space, as in `![#320px #180px](https://example.com/image.png)`. Pass the markup in `content` for `Send*MarkdownEx` or in `MarkdownMessage.Native` for `Send*Markdown`. [AI development guide](docs/AI开发指南.md#markdown-图片显示尺寸)
+
 ## Testing Guidelines
 
 Add tests as `*_test.go` files next to the code under test. Prefer table-driven tests for parsing, message handling helpers, and SDK behavior. `other\bee-go.bat test ./...` should pass before every PR. Full plugin lifecycle, message callbacks, settings windows, worker shutdown, and DLL unload stability still require verification in a real Bee environment.

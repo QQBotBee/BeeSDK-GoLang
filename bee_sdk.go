@@ -351,6 +351,7 @@ type MarkdownParam struct{ Key, Value string }
 // MarkdownMessage 表示原生或模板 Markdown 消息参数。
 // Native 和 Params 中来自 Bee 的文本应保留已有的 \uXXXX。
 type MarkdownMessage struct {
+	// Native 是原生 Markdown 正文，可用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 	Native        string
 	TemplateIndex int
 	TemplateID    string
@@ -1019,22 +1020,26 @@ func (ctx *RobotContext) SendFriendThumbnailCard(friendID, title, subtitle, prev
 	return sendCard(ctx, OpSendFriendThumbnailCard, friendID, []string{title, subtitle, preview, imageURL, jumpURL}, active, &recallInteraction)
 }
 
-// SendGroupMarkdown 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// SendGroupMarkdown 向群发送 Markdown 消息。active 为 true 时使用主动消息模式。
+// 在 message.Native 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 func (ctx *RobotContext) SendGroupMarkdown(groupID string, message MarkdownMessage, active bool) (string, error) {
 	return ctx.Call(OpSendGroupMarkdown, markdownArgs(ctx, groupID, message, active, nil)...)
 }
 
-// SendChannelMarkdown 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// SendChannelMarkdown 向子频道发送 Markdown 消息。active 为 true 时使用主动消息模式。
+// 在 message.Native 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 func (ctx *RobotContext) SendChannelMarkdown(channelID string, message MarkdownMessage, active bool) (string, error) {
 	return ctx.Call(OpSendChannelMarkdown, markdownArgs(ctx, channelID, message, active, nil)...)
 }
 
-// SendFriendMarkdown 发送对应类型的 Bee 消息；active 为 true 时使用主动消息模式。
+// SendFriendMarkdown 向好友发送 Markdown 消息。active 为 true 时使用主动消息模式。
+// 在 message.Native 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 func (ctx *RobotContext) SendFriendMarkdown(friendID string, message MarkdownMessage, active, recallInteraction bool) (string, error) {
 	return ctx.Call(OpSendFriendMarkdown, markdownArgs(ctx, friendID, message, active, &recallInteraction)...)
 }
 
 // SendFriendMarkdownEx 向好友发送 Markdown 内容。keyboardJSON 可为空。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送，recallInteraction 控制是否使用互动召回。
 // 框架返回消息 ID 或失败原因，Go 的 error 表示调用失败。
@@ -1049,6 +1054,7 @@ func (ctx *RobotContext) SendFriendMarkdownEx(friendID, content, keyboardJSON st
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容。keyboardJSON 可为空。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
 func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
@@ -1057,6 +1063,7 @@ func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON stri
 }
 
 // SendChannelMarkdownEx 向子频道发送 Markdown 内容。keyboardJSON 可为空。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
 func (ctx *RobotContext) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
@@ -1482,18 +1489,21 @@ func (api *BeeAPI) GetUserBasicInfo(userID string) (UserBasicInfo, error) {
 }
 
 // SendFriendMarkdownEx 向好友发送 Markdown 内容，可携带按钮或使用互动召回。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
 	return api.ctx.SendFriendMarkdownEx(friendID, content, keyboardJSON, active, recallInteraction)
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容，可携带按钮。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
 	return api.ctx.SendGroupMarkdownEx(groupID, content, keyboardJSON, active)
 }
 
 // SendChannelMarkdownEx 向子频道发送 Markdown 内容，可携带按钮。
+// 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendChannelMarkdownEx(channelID, content, keyboardJSON string, active bool) (string, error) {
 	return api.ctx.SendChannelMarkdownEx(channelID, content, keyboardJSON, active)

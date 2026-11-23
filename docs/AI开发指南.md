@@ -49,6 +49,17 @@ _, _ = bee.ChannelDM(guildID).SendText("私信回复")
 
 群消息发送者与机器人为好友时，在本次回调中用 `bee.Friend(userID).SendText(...)` 被动私聊回复。 [群消息私聊回复](API参考.md#群消息私聊回复)
 
+## Markdown 图片显示尺寸
+
+为 Bee 生成原生 Markdown 正文时，用 `![#宽px #高px](图片地址)` 指定图片的显示宽高。宽在前、高在后，中间用一个空格分隔，单位为 `px`。例如 `![#320px #180px](https://example.com/image.png)` 指定图片显示为 320 × 180 像素。
+
+```go
+content := "![#320px #180px](" + imageURL + ")"
+_, _ = bee.SendGroupMarkdownEx(groupID, content, "", false)
+```
+
+发送到好友、群或子频道时，把正文直接传给对应的 `Send*MarkdownEx` 方法的 `content` 参数。使用 `RobotContext` 的 `Send*Markdown` 方法时，把正文填入 `MarkdownMessage.Native`。 [API 参考](API参考.md#发送-markdown-ex)
+
 ## 转发框架文本
 
 Bee 回调或 API 返回的文本可能同时包含普通中文和字面的 `\uXXXX`，例如 `\uD83D\uDE04你好`。再次发送时，直接将收到的字符串传给 SDK，保留其中的反斜杠和原有字符。Bee 会在处理消息时解析这些序列。手动反转义（如调用 `strconv.Unquote`）、替换转义序列或额外添加反斜杠，都可能导致框架转换失败并出现乱码。

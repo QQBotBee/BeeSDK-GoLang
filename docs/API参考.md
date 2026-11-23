@@ -118,9 +118,12 @@ if result != "" {
 
 `BeeAPI` 和 `RobotContext` 均提供以下方法。传入 Markdown 内容和可选的按钮 `keyboard` JSON，`keyboardJSON` 传 `""` 时不携带按钮。
 
+在 `content` 中用 `![#宽px #高px](图片地址)` 指定图片的显示宽高。宽在前、高在后，中间用一个空格分隔，单位为 `px`。调用 `RobotContext` 的 `SendFriendMarkdown`、`SendGroupMarkdown` 或 `SendChannelMarkdown` 时，同样可在 `MarkdownMessage.Native` 中使用此语法。
+
 生成按钮 JSON 时，机器人 AppID 可选。调用 `BuildKeyboard("", rows)` 会在生成的 JSON 中省略 `content.bot_appid`。
 
 ```go
+content := "![#320px #180px](" + imageURL + ")"
 friendResult, err := bee.SendFriendMarkdownEx(friendID, content, keyboardJSON, false, false)
 groupResult, err := bee.SendGroupMarkdownEx(groupID, content, "", false)
 channelResult, err := bee.SendChannelMarkdownEx(channelID, content, "", true)
