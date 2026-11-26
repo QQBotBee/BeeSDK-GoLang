@@ -204,6 +204,7 @@ const (
 	EventGroupJoinRequest EventType = "GROUP_JOIN_REQUEST"
 
 	// EventInteractionCreate 表示有人触发按钮回调，频道、群聊和私聊场景共用此事件值。
+	// 频道通过 onChannelEvent 接收，群聊和私聊通过 onCommonEvent 接收。
 	EventInteractionCreate EventType = "INTERACTION_CREATE"
 )
 
@@ -369,14 +370,17 @@ type Button struct {
 	Label        string
 	VisitedLabel string
 	Style        int
-	Type         int
-	Permission   int
-	UserIDs      []string
-	RoleIDs      []string
-	Data         string
-	Reply        bool
-	Enter        bool
-	Anchor       int
+	// Type 为 0 时跳转，为 1 时触发按钮回调，为 2 时填入聊天指令。
+	Type int
+	// Permission 为 0 时用 UserIDs 指定用户，为 1 时限管理员，为 2 时允许所有人。
+	Permission int
+	UserIDs    []string
+	RoleIDs    []string
+	// Data 在回调按钮中作为 button_data 返回，在指令按钮中作为聊天指令。
+	Data   string
+	Reply  bool
+	Enter  bool
+	Anchor int
 	// Deprecated: QQ 已废弃 click_limit 字段。
 	ClickLimit           int
 	AtBotShowChannelList bool
@@ -582,7 +586,8 @@ func (ctx *RobotContext) UploadImage(pathOrURL string) (string, error) {
 	return ctx.Call(OpUploadImage, pathOrURL)
 }
 
-// RespondButton 封装对应的 Bee 框架 API；参数和返回值与方法签名一致。
+// RespondButton 使用显式传入的点击事件 ID 应答，responseType 为 0 时确认成功。
+// 群回调的 Bee 文本包装可能将按钮事件 ID 放在 JSON 外，校验后可将该 ID 传给 eventID。
 func (ctx *RobotContext) RespondButton(eventID string, responseType int) (string, error) {
 	return ctx.Call(OpRespondButton, eventID, intText(responseType))
 }
@@ -1067,9 +1072,11 @@ func (ctx *RobotContext) SendFriendMarkdownEx(friendID, content, keyboardJSON st
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容。keyboardJSON 可为空。
+// 自定义按钮使用 [BuildKeyboard] 的返回值填入 keyboardJSON。
 // 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 // active 为 true 时使用主动发送。框架返回消息 ID 或失败原因。
+// 消息 ID 可能以 !! 结尾，按原样保留。error 表示 IPC 调用失败。
 func (ctx *RobotContext) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {
 	messageID, eventID := activeIDs(ctx, active)
 	return ctx.Call(OpSendGroupMarkdownEx, groupID, content, keyboardJSON, messageID, eventID, "")
@@ -1149,6 +1156,7 @@ type keyboardPermission struct {
 }
 
 // BuildKeyboard 生成 Markdown 按钮 JSON。botAppID 为空时省略 bot_appid 字段。
+// 将生成的 JSON 传给 Send*MarkdownEx 的 keyboardJSON 或 MarkdownMessage.KeyboardJSON。
 // 按钮文案和数据中已有的 \uXXXX 应原样传入，JSON 转义由此函数处理。
 func BuildKeyboard(botAppID string, rows [][]Button) (string, error) {
 	if len(rows) > 5 {
@@ -1412,7 +1420,9 @@ func (api *BeeAPI) EventID() string {
 	return api.ctx.EventID
 }
 
-// RespondButton 响应当前按钮事件；responseType 的具体值按 Bee 按钮响应协议填写。
+// RespondButton 使用当前回调的 event_id 应答按钮点击，responseType 为 0 时确认成功。
+// 使用本次点击创建的 BeeAPI。框架应答文本和 IPC 错误分别返回，聊天回复需另行发送。
+// 需要使用外层文本中的点击事件 ID 时，调用 [RobotContext.RespondButton]。
 func (api *BeeAPI) RespondButton(responseType int) (string, error) {
 	if api == nil || api.ctx == nil || api.ctx.EventID == "" {
 		return "", errors.New("当前回调缺少 event_id，无法响应按钮事件")
@@ -1511,6 +1521,7 @@ func (api *BeeAPI) GetUserBasicInfo(userID string) (UserBasicInfo, error) {
 }
 
 // SendFriendMarkdownEx 向好友发送 Markdown 内容，可携带按钮或使用互动召回。
+// keyboardJSON 可传 [BuildKeyboard] 的返回值，无按钮时传空字符串。
 // 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendFriendMarkdownEx(friendID, content, keyboardJSON string, active, recallInteraction bool) (string, error) {
@@ -1518,6 +1529,8 @@ func (api *BeeAPI) SendFriendMarkdownEx(friendID, content, keyboardJSON string, 
 }
 
 // SendGroupMarkdownEx 向群发送 Markdown 内容，可携带按钮。
+// keyboardJSON 可传 [BuildKeyboard] 的返回值，active 为 false 时沿用本次回调上下文。
+// 框架返回消息 ID 或失败原因。消息 ID 可能以 !! 结尾，按原样保留。
 // 在 content 中用 ![#宽px #高px](图片地址) 指定图片的显示宽高。
 // 转发时保留 content 中的 \uXXXX 和 keyboardJSON 中的 JSON 转义。
 func (api *BeeAPI) SendGroupMarkdownEx(groupID, content, keyboardJSON string, active bool) (string, error) {

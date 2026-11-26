@@ -49,16 +49,29 @@ _, _ = bee.ChannelDM(guildID).SendText("私信回复")
 
 群消息发送者与机器人为好友时，在本次回调中用 `bee.Friend(userID).SendText(...)` 被动私聊回复。 [群消息私聊回复](API参考.md#群消息私聊回复)
 
+## Markdown 发送与回执
+
+发送好友和群 Markdown 时，分别优先用 `SendFriendMarkdownEx` 和 `SendGroupMarkdownEx`。有无按钮都优先用 Ex，无按钮时 `keyboardJSON` 传 `""`。频道 Markdown 按场景选择 `SendChannelMarkdown` 或 `SendChannelMarkdownEx`。
+
+`Send*MarkdownEx` 的 `err` 表示 IPC 错误，`result` 是消息 ID 或失败原因。成功回执可形如 `ROBOT1.0_…!!`，完整 ID 原样保留，避免用固定格式校验。IPC 出错或回执无法识别时按发送状态未确认处理，记录原始结果，避免直接重发。只有框架明确返回权限错误时才提示检查权限。 [API 参考](API参考.md#发送-markdown-ex)
+
 ## Markdown 图片显示尺寸
 
 为 Bee 生成原生 Markdown 正文时，用 `![#宽px #高px](图片地址)` 指定图片的显示宽高。宽在前、高在后，中间用一个空格分隔，单位为 `px`。例如 `![#320px #180px](https://example.com/image.png)` 指定图片显示为 320 × 180 像素。
 
 ```go
 content := "![#320px #180px](" + imageURL + ")"
-_, _ = bee.SendGroupMarkdownEx(groupID, content, "", false)
+result, err := bee.SendGroupMarkdownEx(groupID, content, "", false)
+// 按上面的回执规则处理 result 和 err。
 ```
 
-发送到好友、群或子频道时，把正文直接传给对应的 `Send*MarkdownEx` 方法的 `content` 参数。使用 `RobotContext` 的 `Send*Markdown` 方法时，把正文填入 `MarkdownMessage.Native`。 [API 参考](API参考.md#发送-markdown-ex)
+调用 `Send*MarkdownEx` 时把正文传给 `content`。使用 `RobotContext` 的 `Send*Markdown` 方法时，把正文填入 `MarkdownMessage.Native`。 [API 参考](API参考.md#发送-markdown-ex)
+
+## Markdown 按钮
+
+用 `BuildKeyboard("", rows)` 生成 `keyboardJSON`。回调按钮用 `Type: 1`，触发 `INTERACTION_CREATE`。指令按钮用 `Type: 2`。回调分组用 `Button.GroupID`，二次确认用 `Button.Modal`。
+
+群和好友在 `onCommonEvent` 收回调，频道在 `onChannelEvent`。校验 `button_data`、会话和点击者，用本次点击的 `event_id` 调用 `bee.RespondButton(0)`，再执行业务。群事件可能由 Bee 用文本包装，点击事件 ID 在 JSON 外时用 `bee.ctx.RespondButton(eventID, 0)`。有副作用的操作要防重复执行。 [按钮发送与回调示例](API参考.md#按钮发送与回调示例)
 
 ## 转发框架文本
 
@@ -72,8 +85,6 @@ _, _ = bee.Group(groupID).SendText(message)
 同样的规则适用于引用回复、Markdown 和卡片文案。需要在 Go 源码里构造示例时，可以用原始字符串字面量 `` `\uD83D\uDE04你好` ``，使字符串值保留反斜杠。
 
 如果回调载荷是 JSON，按 JSON 结构读取字段后，保留字段值中仍然存在的 `\uXXXX`。构造按钮 JSON 时使用 `BuildKeyboard`，构造自定义消息 JSON 时可使用 `json.Marshal`。把原始字段值直接交给序列化函数，由它处理 JSON 语法所需的转义。
-
-`BuildKeyboard("", rows)` 生成省略 `bot_appid` 的按钮 JSON。回调分组用 `Button.GroupID`，二次确认用 `Button.Modal`。 [Markdown 按钮 JSON](API参考.md#markdown-按钮-json)
 
 ## IPC 纪律
 

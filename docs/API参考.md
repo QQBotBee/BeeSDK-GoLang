@@ -118,6 +118,8 @@ if result != "" {
 
 `BeeAPI` 和 `RobotContext` 均提供以下方法。传入 Markdown 内容和可选的按钮 `keyboard` JSON，`keyboardJSON` 传 `""` 时不携带按钮。
 
+好友和群 Markdown 优先使用 `SendFriendMarkdownEx` 和 `SendGroupMarkdownEx`，无按钮时也适用。频道 Markdown 按场景选择 `SendChannelMarkdown` 或 `SendChannelMarkdownEx`。
+
 在 `content` 中用 `![#宽px #高px](图片地址)` 指定图片的显示宽高。宽在前、高在后，中间用一个空格分隔，单位为 `px`。调用 `RobotContext` 的 `SendFriendMarkdown`、`SendGroupMarkdown` 或 `SendChannelMarkdown` 时，同样可在 `MarkdownMessage.Native` 中使用此语法。
 
 自定义键盘可用 `BuildKeyboard` 生成，返回的 JSON 可直接传给 `keyboardJSON`。 [Markdown 按钮 JSON](#markdown-按钮-json)
@@ -132,6 +134,10 @@ channelResult, err := bee.SendChannelMarkdownEx(channelID, content, "", true)
 最后一个参数用于控制群或频道消息是否主动发送。好友接口末尾依次为 `active` 和 `recallInteraction`，分别控制主动发送与互动召回。`active` 为 `false` 时使用当前回调的 `msg_id` 和 `event_id`，为 `true` 时清空这两个字段。频道的被动发送需要相应权限。
 
 三个发送方法均返回框架的原始文本。发送成功时该文本为消息 ID，发送失败时为原因。IPC 调用失败通过 `error` 返回。
+
+例如，群 Markdown Ex 成功后可返回 `ROBOT1.0_…!!`，其中 `…` 代表省略的 ID 内容。使用消息 ID 时应原样保留，包括末尾的 `!!`。`err == nil` 只表示 IPC 调用正常，返回文本非空时也可能是失败原因。只有框架明确返回权限错误时，才提示检查权限。
+
+遇到 IPC 错误或无法识别的回执时，记录调用结果并按投递状态未确认处理，避免直接重发。确认框架明确拒绝本次发送后，才考虑换接口或降级。
 
 ## Markdown 按钮 JSON
 
@@ -212,6 +218,47 @@ keyboardJSON, err := BuildKeyboard("", [][]Button{{
 | `content` | `string` | 非空时触发二次确认。提示最多 40 个字符，且不能包含 URL。 |
 | `confirm_text` | `string` | 确认按钮文字，最多 4 个字符。留空时使用“确认”。 |
 | `cancel_text` | `string` | 取消按钮文字，最多 4 个字符。留空时使用“取消”。 |
+
+## 按钮发送与回调示例
+
+群内发原生回调按钮时，从本次消息的 `robotJSON` 创建 `BeeAPI`，用 `BuildKeyboard` 生成键盘，再把 JSON 传给 `SendGroupMarkdownEx`。`active` 传 `false` 时使用本次回调上下文。下例通过 `Permission: 0` 和 `UserIDs` 限制可点击的用户，`Data` 是插件定义的动作标识。用 `Type: 2` 填入聊天指令时，由普通消息回调接收用户实际发出的指令。
+
+```go
+func sendRefreshButton(bee *BeeAPI, groupID, userID string) (string, error) {
+    keyboard, err := BuildKeyboard("", [][]Button{{
+        {
+            ID:         "refresh",
+            Label:      "刷新",
+            Style:      1,
+            Type:       1,
+            Permission: 0,
+            UserIDs:    []string{userID},
+            Data:       "demo:refresh",
+        },
+    }})
+    if err != nil {
+        return "", err
+    }
+    return bee.SendGroupMarkdownEx(groupID, "# 当前状态", keyboard, false)
+}
+```
+
+调用方先处理 `err`，再按[发送回执规则](#发送-markdown-ex)处理返回文本。
+
+1. `Type: 1` 的点击走 `INTERACTION_CREATE`。群和好友在 `onCommonEvent` 处理，频道在 `onChannelEvent` 处理。用当前事件的 `robotJSON` 创建新的 `BeeAPI`。 [QQ 按钮回调协议](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/trans/msg-btn.md)
+2. 根据实际载荷读取 `button_data`，例如 `data.resolved.button_data`，或带网关外层时的 `d.data.resolved.button_data`。Bee 也可能传入已解包的按钮数据。只处理本插件识别的动作，例如 `demo:refresh`，并核对发卡时绑定的群和用户。有副作用的动作可用带有效期的一次性标识绑定群、用户和动作，在执行业务前防重复。
+3. Bee 的部分群回调会采用文本包装，例如 `用户ID触发按钮回调在群群ID中，类型：group，按钮事件ID：event-id，回调数据JSON：{"button_data":"demo:refresh"}`。兼容这种回调时，先识别完整外层，再解析内层 JSON。来源参数和外层文本同时提供群或用户 ID 时，核对两者一致。应答使用本次点击的事件 ID，卡片消息 ID 用于引用或撤回。
+4. 识别并校验本插件的按钮后及时应答。`0` 表示确认本次点击。在当前上下文有点击事件 ID 时用 `bee.RespondButton(0)`，从外层文本取得点击 ID 时显式传给 `bee.ctx.RespondButton(eventID, 0)`。应答返回的文本用于检查框架结果，后续聊天回复另行发送。 [QQ 交互应答协议](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/trans/msg-btn.md)
+
+```go
+// eventID 是从已验证的 Bee 群回调外层提取的点击事件 ID，普通回调传空字符串。
+func acknowledgeRefreshButton(bee *BeeAPI, eventID string) (string, error) {
+    if eventID != "" {
+        return bee.ctx.RespondButton(eventID, 0)
+    }
+    return bee.RespondButton(0)
+}
+```
 
 ## 1～111 操作码
 

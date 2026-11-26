@@ -218,8 +218,8 @@ func onChannelEvent(
 		// 当有人回复帖子时
 
 	case EventInteractionCreate:
-		// 按钮事件
-		// _, _ = bee.RespondButton(0)
+		// 校验本插件的 button_data 和点击者后，用 bee.RespondButton(0) 应答本次点击。
+		// 应答和后续聊天回复分别调用，详见 docs/API参考.md 的按钮示例。
 
 	default:
 		// 其他或后续新增的频道事件，可在这里统一处理。
@@ -290,6 +290,7 @@ func onGroupMessage(
 
 // onCommonEvent 处理机器人收到的好友、私聊和群聊通常事件。
 // sourceID 是群聊 ID 或私聊 ID；operatorID 是执行操作的用户；rawMessage 是事件原始内容。
+// 兼容 Bee 群按钮回调的文本包装时，先识别完整外层，再按常规事件类型分流。
 // 返回 MessageContinue 表示继续后续处理；返回 MessageIntercept 表示拦截该事件。
 func onCommonEvent(
 	robotJSON string, // 当前机器人上下文 JSON，用于创建本次事件的 BeeAPI
@@ -308,8 +309,8 @@ func onCommonEvent(
 
 	switch EventType(eventType) {
 	case EventInteractionCreate:
-		// 按钮事件
-		// _, _ = bee.RespondButton(0)
+		// 核对本插件的 button_data、群和点击者后，用 bee.RespondButton(0) 应答。
+		// 若点击 ID 来自 Bee 文本包装，用 bee.ctx.RespondButton(eventID, 0) 显式应答。
 
 	case EventFriendAdd:
 		// 用户添加机器人为好友
