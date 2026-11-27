@@ -377,6 +377,7 @@ type Button struct {
 	UserIDs    []string
 	RoleIDs    []string
 	// Data 在回调按钮中作为 button_data 返回，在指令按钮中作为聊天指令。
+	// 点击后需要被动回复时，在 Data 中携带用户原消息的 ID 和动作标识。
 	Data   string
 	Reply  bool
 	Enter  bool
@@ -1422,6 +1423,8 @@ func (api *BeeAPI) EventID() string {
 
 // RespondButton 使用当前回调的 event_id 应答按钮点击，responseType 为 0 时确认成功。
 // 使用本次点击创建的 BeeAPI。框架应答文本和 IPC 错误分别返回，聊天回复需另行发送。
+// 被动发送聊天回复时，从 button_data 取出用户原消息 ID，填入当前 RobotContext 副本的 MessageID。
+// 清空副本的 EventID，以 active=false 发送。发送回执和回调中的卡片消息 ID 都属于插件发出的卡片。
 // 需要使用外层文本中的点击事件 ID 时，调用 [RobotContext.RespondButton]。
 func (api *BeeAPI) RespondButton(responseType int) (string, error) {
 	if api == nil || api.ctx == nil || api.ctx.EventID == "" {

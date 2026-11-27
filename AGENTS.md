@@ -25,6 +25,10 @@ Pass text received from Bee directly to the send API. Preserve literal `\uXXXX` 
 
 When generating Bee Markdown, use `![#宽px #高px](图片地址)` to set an image's display size. Put the width first and the height second, separated by one space, as in `![#320px #180px](https://example.com/image.png)`. Pass the markup in `content` for `Send*MarkdownEx` or in `MarkdownMessage.Native` for `Send*Markdown`. [AI development guide](docs/AI开发指南.md#markdown-图片显示尺寸)
 
+## Passive Replies After Button Clicks
+
+When a user sends message A and the plugin replies with button card B, store A's `messageID` in `Button.Data` with the action. `BuildKeyboard` writes it to `action.data`, and the click callback returns it in `button_data`. Acknowledge the click with its `event_id`. For the chat reply, copy the current callback's `RobotContext`, set `MessageID` to A's recovered ID, clear `EventID`, and send with `active=false`. The send receipt for B and the callback's card message ID both identify B. [AI development guide](docs/AI开发指南.md#按钮点击后的被动回复)
+
 ## Testing Guidelines
 
 Add tests as `*_test.go` files next to the code under test. Prefer table-driven tests for parsing, message handling helpers, and SDK behavior. `other\bee-go.bat test ./...` should pass before every PR. Full plugin lifecycle, message callbacks, settings windows, worker shutdown, and DLL unload stability still require verification in a real Bee environment.

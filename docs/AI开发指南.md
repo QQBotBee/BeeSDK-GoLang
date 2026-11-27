@@ -73,6 +73,14 @@ result, err := bee.SendGroupMarkdownEx(groupID, content, "", false)
 
 群和好友在 `onCommonEvent` 收回调，频道在 `onChannelEvent`。校验 `button_data`、会话和点击者，用本次点击的 `event_id` 调用 `bee.RespondButton(0)`，再执行业务。群事件可能由 Bee 用文本包装，点击事件 ID 在 JSON 外时用 `bee.ctx.RespondButton(eventID, 0)`。有副作用的操作要防重复执行。 [按钮发送与回调示例](API参考.md#按钮发送与回调示例)
 
+### 按钮点击后的被动回复
+
+用户发来消息 A，插件回复带按钮的消息 B。用户点击 B 上的按钮后，发送后续聊天消息时，被动回复的 `msg_id` 必须使用用户原消息 A 的 ID。
+
+1. 在处理消息 A 时，从消息回调的 `messageID` 参数取得原消息 ID，把它和动作标识一起写入 `Button.Data`，例如 `"demo:refresh:" + messageID`。`BuildKeyboard` 会把该值写进 `action.data`。
+2. 在按钮回调中读取 `button_data`。校验动作、会话和点击者后，取出完整的原消息 ID。缺少原消息 ID 时停止被动回复。发送 B 的回执和点击载荷里的卡片消息 ID 都属于 B，仅用于对 B 进行引用、撤回等操作。
+3. 用本次点击的 `event_id` 应答按钮。发送聊天回复时，复制本次点击创建的 `bee.ctx`，将副本的 `MessageID` 设为 A 的 ID，清空副本的 `EventID`，再以 `active=false` 发送。`Reply` 的消息 ID 参数用于指定被引用的消息，被动发送使用的是上下文的 `MessageID`。 [按钮发送与回调示例](API参考.md#按钮发送与回调示例)
+
 ## 转发框架文本
 
 Bee 回调或 API 返回的文本可能同时包含普通中文和字面的 `\uXXXX`，例如 `\uD83D\uDE04你好`。再次发送时，直接将收到的字符串传给 SDK，保留其中的反斜杠和原有字符。Bee 会在处理消息时解析这些序列。手动反转义（如调用 `strconv.Unquote`）、替换转义序列或额外添加反斜杠，都可能导致框架转换失败并出现乱码。

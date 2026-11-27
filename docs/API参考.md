@@ -221,10 +221,15 @@ keyboardJSON, err := BuildKeyboard("", [][]Button{{
 
 ## 按钮发送与回调示例
 
-群内发原生回调按钮时，从本次消息的 `robotJSON` 创建 `BeeAPI`，用 `BuildKeyboard` 生成键盘，再把 JSON 传给 `SendGroupMarkdownEx`。`active` 传 `false` 时使用本次回调上下文。下例通过 `Permission: 0` 和 `UserIDs` 限制可点击的用户，`Data` 是插件定义的动作标识。用 `Type: 2` 填入聊天指令时，由普通消息回调接收用户实际发出的指令。
+在 `onGroupMessage` 中，用用户原消息 A 的 `robotJSON` 创建 `BeeAPI`，将回调的 `messageID` 传给 `sendRefreshButton`。示例使用标准库 `errors` 和 `strings`。`Permission: 0` 和 `UserIDs` 限制可点击的用户，`Data` 携带动作和 A 的消息 ID。发送带按钮的消息 B 时，`active` 传 `false`，使用 A 的回调上下文。用 `Type: 2` 填入聊天指令时，由普通消息回调接收用户实际发出的指令。
 
 ```go
-func sendRefreshButton(bee *BeeAPI, groupID, userID string) (string, error) {
+const refreshButtonPrefix = "demo:refresh:"
+
+func sendRefreshButton(bee *BeeAPI, groupID, userID, messageID string) (string, error) {
+    if messageID == "" {
+        return "", errors.New("缺少用户原消息 ID")
+    }
     keyboard, err := BuildKeyboard("", [][]Button{{
         {
             ID:         "refresh",
@@ -233,7 +238,7 @@ func sendRefreshButton(bee *BeeAPI, groupID, userID string) (string, error) {
             Type:       1,
             Permission: 0,
             UserIDs:    []string{userID},
-            Data:       "demo:refresh",
+            Data:       refreshButtonPrefix + messageID,
         },
     }})
     if err != nil {
@@ -243,11 +248,11 @@ func sendRefreshButton(bee *BeeAPI, groupID, userID string) (string, error) {
 }
 ```
 
-调用方先处理 `err`，再按[发送回执规则](#发送-markdown-ex)处理返回文本。
+调用方先处理 `err`，再按发送回执规则处理返回文本。成功回执中的消息 ID 属于卡片 B。 [发送回执规则](#发送-markdown-ex)
 
 1. `Type: 1` 的点击走 `INTERACTION_CREATE`。群和好友在 `onCommonEvent` 处理，频道在 `onChannelEvent` 处理。用当前事件的 `robotJSON` 创建新的 `BeeAPI`。 [QQ 按钮回调协议](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/trans/msg-btn.md)
-2. 根据实际载荷读取 `button_data`，例如 `data.resolved.button_data`，或带网关外层时的 `d.data.resolved.button_data`。Bee 也可能传入已解包的按钮数据。只处理本插件识别的动作，例如 `demo:refresh`，并核对发卡时绑定的群和用户。有副作用的动作可用带有效期的一次性标识绑定群、用户和动作，在执行业务前防重复。
-3. Bee 的部分群回调会采用文本包装，例如 `用户ID触发按钮回调在群群ID中，类型：group，按钮事件ID：event-id，回调数据JSON：{"button_data":"demo:refresh"}`。兼容这种回调时，先识别完整外层，再解析内层 JSON。来源参数和外层文本同时提供群或用户 ID 时，核对两者一致。应答使用本次点击的事件 ID，卡片消息 ID 用于引用或撤回。
+2. 根据实际载荷读取 `button_data`，例如 `data.resolved.button_data`，或带网关外层时的 `d.data.resolved.button_data`。Bee 也可能传入已解包的按钮数据。识别 `demo:refresh:` 前缀，取出前缀后的完整原消息 ID，并核对发卡时绑定的群和用户。有副作用的动作可用带有效期的一次性标识绑定群、用户和动作，在执行业务前防重复。
+3. Bee 的部分群回调会采用文本包装，例如 `用户ID触发按钮回调在群群ID中，类型：group，按钮事件ID：event-id，回调数据JSON：{"button_data":"demo:refresh:original-message-id"}`。兼容这种回调时，先识别完整外层，再解析内层 JSON。来源参数和外层文本同时提供群或用户 ID 时，核对两者一致。应答使用本次点击的事件 ID，卡片消息 ID 用于引用或撤回。
 4. 识别并校验本插件的按钮后及时应答。`0` 表示确认本次点击。在当前上下文有点击事件 ID 时用 `bee.RespondButton(0)`，从外层文本取得点击 ID 时显式传给 `bee.ctx.RespondButton(eventID, 0)`。应答返回的文本用于检查框架结果，后续聊天回复另行发送。 [QQ 交互应答协议](https://github.com/tencent-connect/bot-docs/blob/main/docs/develop/api-v2/server-inter/message/trans/msg-btn.md)
 
 ```go
@@ -259,6 +264,24 @@ func acknowledgeRefreshButton(bee *BeeAPI, eventID string) (string, error) {
     return bee.RespondButton(0)
 }
 ```
+
+应答点击后，可用 `button_data` 里的 A 消息 ID 被动发送聊天回复。下面的 `bee` 来自本次点击回调，`groupID` 和 `buttonData` 已按上述步骤校验。复制上下文后只在副本设置发送用的 ID。
+
+```go
+func replyAfterRefreshClick(bee *BeeAPI, groupID, buttonData string) (string, error) {
+    originalMessageID, ok := strings.CutPrefix(buttonData, refreshButtonPrefix)
+    if !ok || originalMessageID == "" {
+        return "", errors.New("刷新按钮数据缺少有效的原消息 ID")
+    }
+
+    replyContext := *bee.ctx
+    replyContext.MessageID = originalMessageID
+    replyContext.EventID = ""
+    return replyContext.SendGroupMessage(groupID, "已刷新", "", false, false)
+}
+```
+
+`SendGroupMessage` 的最后一个参数是 `active`。传 `false` 时使用 `replyContext.MessageID` 作为被动发送的 `msg_id`。好友和频道可用相同的上下文副本，分别调用 `SendFriendMessage` 和 `SendChannelMessage`，并将各自的 `active` 参数设为 `false`。
 
 ## 1～111 操作码
 

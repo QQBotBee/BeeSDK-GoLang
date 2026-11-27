@@ -20,6 +20,7 @@ func pluginMetadata() PluginInfo {
 // 以下是插件业务回调模板。
 // 依赖当前消息或事件上下文的 API（例如回复、撤回、按钮响应）必须使用本次回调新建的 BeeAPI，
 // 避免复用已经失效的 msg_id、event_id 等数据。
+// 用按钮回复用户消息时，将该用户消息的 messageID 随动作写入 Button.Data，供点击后的被动回复使用。
 // 不依赖消息或事件上下文的框架级 API（例如输出日志、取框架信息）可以复用有效的 API 对象。
 
 // beeFromArgs 从回调参数的第一项创建 BeeAPI；消息和事件相关操作应使用本次回调创建的对象。
@@ -219,7 +220,8 @@ func onChannelEvent(
 
 	case EventInteractionCreate:
 		// 校验本插件的 button_data 和点击者后，用 bee.RespondButton(0) 应答本次点击。
-		// 应答和后续聊天回复分别调用，详见 docs/API参考.md 的按钮示例。
+		// 后续被动回复用 button_data 中保存的用户原消息 ID，填到 bee.ctx 副本的 MessageID。
+		// 清空副本的 EventID，以 active=false 发送。详见 docs/API参考.md 的按钮示例。
 
 	default:
 		// 其他或后续新增的频道事件，可在这里统一处理。
@@ -311,6 +313,8 @@ func onCommonEvent(
 	case EventInteractionCreate:
 		// 核对本插件的 button_data、群和点击者后，用 bee.RespondButton(0) 应答。
 		// 若点击 ID 来自 Bee 文本包装，用 bee.ctx.RespondButton(eventID, 0) 显式应答。
+		// 后续被动回复用 button_data 中保存的用户原消息 ID，填到 bee.ctx 副本的 MessageID。
+		// 清空副本的 EventID，以 active=false 发送。发卡回执和回调里的卡片消息 ID 都属于插件消息。
 
 	case EventFriendAdd:
 		// 用户添加机器人为好友
