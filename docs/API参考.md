@@ -283,6 +283,33 @@ func replyAfterRefreshClick(bee *BeeAPI, groupID, buttonData string) (string, er
 
 `SendGroupMessage` 的最后一个参数是 `active`。传 `false` 时使用 `replyContext.MessageID` 作为被动发送的 `msg_id`。好友和频道可用相同的上下文副本，分别调用 `SendFriendMessage` 和 `SendChannelMessage`，并将各自的 `active` 参数设为 `false`。
 
+### 连续按钮回调示例
+
+在 `onGroupMessage` 收到「我的庄园」（A）后，用 A 的上下文发送卡片 B。B 上的「查看田地」按钮使用 `Type: 1`，并将 `Data` 设为 `"manor:fields:" + messageID`，随动作带上 A 的消息 ID。每次点击都按前面的步骤校验 `button_data`、会话和点击者，再用本次事件创建的 `BeeAPI` 处理。
+
+| 步骤 | 发送内容 | 被动发送的 `msg_id` | 被动发送的 `event_id` |
+| --- | --- | --- | --- |
+| 收到原消息 A | 卡片 B「查看田地」 | A 的消息 ID | 沿用 A 回调中的值 |
+| 用户点击卡片 B | 卡片 C「返回庄园」，按钮 `Data` 为 `manor:menu` | `""` | B 上本次点击的事件 ID |
+| 用户点击卡片 C | 新的庄园菜单卡片，「查看田地」按钮 `Data` 为 `manor:fields` | `""` | C 上本次点击的事件 ID |
+
+每轮先确认本次点击。普通回调用 `bee.EventID()` 取得点击 ID，Bee 文本包装则使用已校验的外层点击 ID。用这个 ID 调用 `bee.ctx.RespondButton(eventID, 0)`，检查应答结果后，用同一个 ID 调用下面的发卡函数。`keyboardJSON` 由 `BuildKeyboard` 根据下一张卡片的按钮生成。
+
+```go
+func sendNextButtonCard(bee *BeeAPI, groupID, eventID, content, keyboardJSON string) (string, error) {
+    if eventID == "" {
+        return "", errors.New("缺少本次按钮点击的事件 ID")
+    }
+
+    replyContext := *bee.ctx
+    replyContext.MessageID = ""
+    replyContext.EventID = eventID
+    return replyContext.SendGroupMarkdownEx(groupID, content, keyboardJSON, false)
+}
+```
+
+`active=false` 会把副本中的空 `MessageID` 和本次点击的 `EventID` 传给框架。后续点击重复同样的流程，每次重新取得点击 ID。首个按钮携带 A 的 ID，后续按钮的 `Data` 只需携带下一步动作。卡片消息 ID 用于定位对应卡片。
+
 ## 1～111 操作码
 
 | 操作码 | Go 常量 | 功能 |

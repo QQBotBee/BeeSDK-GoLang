@@ -75,11 +75,20 @@ result, err := bee.SendGroupMarkdownEx(groupID, content, "", false)
 
 ### 按钮点击后的被动回复
 
-用户发来消息 A，插件回复带按钮的消息 B。用户点击 B 上的按钮后，发送后续聊天消息时，被动回复的 `msg_id` 必须使用用户原消息 A 的 ID。
+用户发来消息 A，插件回复带按钮的消息 B。用户点击 B 上的按钮后，如果要基于原消息 A 发送聊天回复，被动回复的 `msg_id` 必须使用 A 的 ID。
 
 1. 在处理消息 A 时，从消息回调的 `messageID` 参数取得原消息 ID，把它和动作标识一起写入 `Button.Data`，例如 `"demo:refresh:" + messageID`。`BuildKeyboard` 会把该值写进 `action.data`。
-2. 在按钮回调中读取 `button_data`。校验动作、会话和点击者后，取出完整的原消息 ID。缺少原消息 ID 时停止被动回复。发送 B 的回执和点击载荷里的卡片消息 ID 都属于 B，仅用于对 B 进行引用、撤回等操作。
+2. 在按钮回调中读取 `button_data`。校验动作、会话和点击者后，取出完整的原消息 ID。缺少原消息 ID 时停止基于 A 的回复。发送 B 的回执和点击载荷里的卡片消息 ID 都属于 B，仅用于对 B 进行引用、撤回等操作。
 3. 用本次点击的 `event_id` 应答按钮。发送聊天回复时，复制本次点击创建的 `bee.ctx`，将副本的 `MessageID` 设为 A 的 ID，清空副本的 `EventID`，再以 `active=false` 发送。`Reply` 的消息 ID 参数用于指定被引用的消息，被动发送使用的是上下文的 `MessageID`。 [按钮发送与回调示例](API参考.md#按钮发送与回调示例)
+
+### 连续按钮回调
+
+用户发「我的庄园」（A），插件用 A 的回调上下文发送首张卡片 B。B 上的「查看田地」按钮在 `Button.Data` 中携带动作和 A 的 `msg_id`。
+
+- 点击 B 时，先用本次点击的 `event_id` 应答，再用同一个 `event_id` 被动发送带「返回庄园」按钮的卡片 C。发送前复制当前 `bee.ctx`，明确设置 `MessageID = ""` 和 `EventID = eventID`，调用 `SendGroupMarkdownEx` 时传 `active=false`。
+- 点击 C 时，使用这次点击创建的新 `BeeAPI`。用 C 上这次点击的新 `event_id` 应答并发下一张卡片，发送时仍将 `msg_id` 置空。每一轮都只用本轮点击的事件 ID 作为被动发送凭据。
+
+Bee 文本包装里的点击 ID 也适用。校验并取出外层的 `eventID` 后，将同一个 ID 用于应答和发卡。缺少本次点击 ID 时停止这轮发卡。 [连续按钮回调示例](API参考.md#连续按钮回调示例)
 
 ## 转发框架文本
 

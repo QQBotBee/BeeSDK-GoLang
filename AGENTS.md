@@ -27,7 +27,9 @@ When generating Bee Markdown, use `![#宽px #高px](图片地址)` to set an ima
 
 ## Passive Replies After Button Clicks
 
-When a user sends message A and the plugin replies with button card B, store A's `messageID` in `Button.Data` with the action. `BuildKeyboard` writes it to `action.data`, and the click callback returns it in `button_data`. Acknowledge the click with its `event_id`. For the chat reply, copy the current callback's `RobotContext`, set `MessageID` to A's recovered ID, clear `EventID`, and send with `active=false`. The send receipt for B and the callback's card message ID both identify B. [AI development guide](docs/AI开发指南.md#按钮点击后的被动回复)
+When a user sends message A and the plugin replies with button card B, store A's `messageID` in `Button.Data` with the action. `BuildKeyboard` writes it to `action.data`, and the click callback returns it in `button_data`. Acknowledge the click with its `event_id`. For a chat reply based on A, copy the current callback's `RobotContext`, set `MessageID` to A's recovered ID, clear `EventID`, and send with `active=false`. The send receipt for B and the callback's card message ID both identify B. [AI development guide](docs/AI开发指南.md#按钮点击后的被动回复)
+
+When a click sends another button card, acknowledge this click, then copy this callback's `RobotContext`, explicitly set `MessageID` to `""`, set `EventID` to this click's event ID, and send with `active=false`. Repeat with the new event ID on each click. Each send uses only the current click's event ID as its reply credential. [Continuous button callbacks](docs/AI开发指南.md#连续按钮回调)
 
 ## Testing Guidelines
 
